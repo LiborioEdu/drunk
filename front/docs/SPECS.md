@@ -100,6 +100,7 @@ stateDiagram-v2
 | **RNF-03** | **Offline Resilience** | Após travar a rota, a sessão inteira, os 10 bares, a *polyline* codificada e todos os lançamentos da comanda financeira ficam salvos localmente, sobrevivendo ao fechamento do app. |
 | **RNF-04** | **Usabilidade Noturna** | Contraste mínimo WCAG AA em ambiente externo noturno, alvos de toque $\ge 48 \times 48\text{ dp}$ para uso em movimento/corrida e números condensados gigantes para leitura em 1 segundo. |
 | **RNF-05** | **Modo Simulação Dev** | Controles de simulação de passo/GPS em modo debug para testar aproximação $\le 20\text{ m}$ e disparo de velocidade $> 15\text{ km/h}$ diretamente no navegador (`web-server`) ou desktop. |
+| **RNF-06** | **Segurança & `.gitignore`** | Bloqueio obrigatório no Git de chaves de API/MCP (`.agents/`, `.env*`, `dart_defines*.json`), bancos locais (`*.db`, `drunk.db`) e ambientes virtuais (`.venv/`). Especificação detalhada em [`docs/GITIGNORE_AND_SECURITY_SPECS.md`](file:///home/eduardo/dev/drunk/front/docs/GITIGNORE_AND_SECURITY_SPECS.md). |
 
 ---
 
