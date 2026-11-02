@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>DRUNK // 10K - Trava de Hidratação</title>
+<!-- Google Fonts: Bebas Neue, Inter, Space Grotesk -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            background: '#121212',
+            surface: '#121212',
+            'surface-dim': '#0E0E11',
+            'surface-container-lowest': '#0B0B0E',
+            'surface-container-low': '#141418',
+            'surface-container': '#17171C',
+            'surface-container-high': '#1F1F26',
+            'surface-container-highest': '#292933',
+            'on-surface': '#FFFFFF',
+            'on-surface-variant': '#A8A8B3',
+            primary: '#FF5E00',
+            'on-primary': '#0E0E11',
+            'primary-container': '#3D1600',
+            'on-primary-container': '#FFB693',
+            secondary: '#00FF66',
+            'on-secondary': '#002109',
+            'secondary-container': '#003913',
+            'on-secondary-container': '#80FFB3',
+            tertiary: '#00E5FF',
+            'on-tertiary': '#001F24',
+            'tertiary-container': '#00363D',
+            'on-tertiary-container': '#9CF0FF',
+            error: '#FF3366',
+            'on-error': '#FFFFFF',
+            'error-container': '#4D0016',
+            'on-error-container': '#FFD9E0',
+            outline: '#383844',
+            'outline-variant': '#25252E'
+          },
+          borderRadius: {
+            'DEFAULT': '0.5rem',
+            'lg': '1rem',
+            'xl': '1.5rem',
+            'full': '9999px'
+          },
+          fontFamily: {
+            headline: ['Bebas Neue', 'sans-serif'],
+            display: ['Bebas Neue', 'sans-serif'],
+            body: ['Inter', 'sans-serif'],
+            label: ['Space Grotesk', 'sans-serif']
+          }
+        },
+      }
+    }
+  </script>
+<style>
+    /* Neon Cyan Glow & Cyberpunk Pulse Animations */
+    @keyframes pulse-cyan {
+      0%, 100% {
+        box-shadow: 0 0 15px rgba(0, 229, 255, 0.45), inset 0 0 10px rgba(0, 229, 255, 0.2);
+      }
+      50% {
+        box-shadow: 0 0 35px rgba(0, 229, 255, 0.8), inset 0 0 20px rgba(0, 229, 255, 0.5);
+      }
+    }
+
+    @keyframes rotate-hud {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes scanline {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(1000%); }
+    }
+
+    .cyan-glow {
+      animation: pulse-cyan 2.8s infinite ease-in-out;
+    }
+
+    .rotate-slow {
+      animation: rotate-hud 28s linear infinite;
+    }
+
+    .rotate-reverse {
+      animation: rotate-hud 20s linear infinite reverse;
+    }
+
+    .scanline-effect {
+      background: linear-gradient(180deg, transparent 0%, rgba(0, 229, 255, 0.12) 50%, transparent 100%);
+      animation: scanline 4s linear infinite;
+    }
+
+    /* Grid coordinate overlay */
+    .cyber-grid {
+      background-size: 24px 24px;
+      background-image: 
+        linear-gradient(to right, rgba(56, 56, 68, 0.25) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(56, 56, 68, 0.25) 1px, transparent 1px);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-container-lowest text-on-surface font-body min-h-screen flex flex-col items-center selection:bg-tertiary selection:text-on-tertiary">
+<!-- Mobile Viewport Container (Max 390px) -->
+<div class="relative w-full max-w-[390px] min-h-screen bg-surface-container-lowest flex flex-col justify-between overflow-x-hidden pb-24 shadow-2xl">
+<!-- Atmospheric Map Canvas (Dark Blurred Nocturnal Street Map) -->
+<div class="absolute inset-0 bg-cover bg-center pointer-events-none opacity-20 filter blur-[3px] scale-105" data-alt="A dark cyberpunk nocturnal street map overlay in deep obsidian black, displaying glowing neon orange and neon cyan telemetry lines along dark city avenues, with atmospheric rain reflections and blurred neon pub storefronts in the urban background." data-location="São Paulo" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCylEbgkczdh_zPB7pXcuYLGoCpRHqF4mxMIzpPetdHNiwCljyHX-TgdUWUZiJByfJqOIn9EMYclhA2DR-JYa5Ah7SyHckVjnfjYgM1KJIvbhgjeREP6KICk3ooBOsKZJv5_kb6ta4OzxiWLIu7of0Nl3VyK8t5Mxh6x9zUEEOMuYmBuB1KMDiRJX_vqLV6yEMDSz9iIia5y69kudUJSdqBCdnak3mdRCJZdF77ATfKHQaWz1RVHJN6ScpfEHARYZnKAibhYMD6u23c')">
+</div>
+<!-- Cyber Grid Texture & Radial Atmospheric Neon Glows -->
+<div class="absolute inset-0 cyber-grid pointer-events-none opacity-40"></div>
+<div class="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-tertiary/20 rounded-full blur-[90px] pointer-events-none"></div>
+<div class="absolute top-[32%] -right-16 w-56 h-56 bg-primary/15 rounded-full blur-[80px] pointer-events-none"></div>
+<div class="absolute bottom-28 left-0 w-64 h-64 bg-secondary/15 rounded-full blur-[85px] pointer-events-none"></div>
+<!-- ========================================== -->
+<!-- 1. TOP APP BAR / SECURITY STATUS           -->
+<!-- ========================================== -->
+<header class="relative z-40 w-full pt-4 px-3 flex flex-col gap-2">
+<!-- High-visibility glowing safety banner -->
+<div class="w-full bg-surface-container/90 backdrop-blur-md border border-tertiary/60 rounded-xl px-3 py-2 flex items-center justify-between shadow-[0_0_20px_rgba(0,229,255,0.25)]">
+<div class="flex items-center gap-2">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-tertiary"></span>
+</span>
+<span class="font-label text-[11px] font-bold text-tertiary tracking-widest uppercase flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+            PROTOCOLO DE SEGURANÇA ATIVO • ROTA BLOQUEADA
+          </span>
+</div>
+<span class="text-tertiary text-xs font-label font-bold px-1.5 py-0.5 rounded bg-tertiary/10 border border-tertiary/30">
+          GATE #2
+        </span>
+</div>
+<!-- Run Metrics Bar -->
+<div class="w-full bg-surface-container-low/80 backdrop-blur-sm border border-outline/30 rounded-lg px-3 py-1.5 flex items-center justify-between text-on-surface-variant font-label text-[10px] tracking-wider">
+<div class="flex items-center gap-1">
+<span class="text-primary font-bold">4.3 KM</span>
+<span>PERCORRIDOS</span>
+</div>
+<span class="text-outline">•</span>
+<div class="flex items-center gap-1">
+<span class="text-secondary font-bold">4/10</span>
+<span>BARES</span>
+</div>
+<span class="text-outline">•</span>
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[13px]">favorite</span>
+<span class="font-bold">142 BPM</span>
+</div>
+</div>
+</header>
+<!-- ========================================== -->
+<!-- MAIN CONTENT SCROLL AREA                   -->
+<!-- ========================================== -->
+<main class="relative z-30 flex-1 px-4 pt-4 flex flex-col items-center justify-start gap-4">
+<!-- Checkpoint Badge -->
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container border border-tertiary/40 shadow-lg">
+<span class="material-symbols-outlined text-tertiary text-[15px]" style="font-variation-settings: 'FILL' 1;">water_drop</span>
+<span class="font-label text-[10px] font-bold tracking-widest text-on-surface uppercase">
+          CHECKPOINT DE HIDRATAÇÃO 02/04 <span class="text-secondary">(BAR #04 CONCLUÍDO)</span>
+</span>
+</div>
+<!-- ========================================== -->
+<!-- 2. CENTER HERO HOLOGRAPHIC EMBLEM          -->
+<!-- ========================================== -->
+<div class="relative w-48 h-48 my-1 flex items-center justify-center">
+<!-- Ambient Glowing Aura -->
+<div class="absolute inset-0 rounded-full bg-tertiary/20 blur-xl"></div>
+<!-- Outer Rotating HUD Rings -->
+<div class="absolute inset-0 rounded-full border border-dashed border-tertiary/40 rotate-slow"></div>
+<div class="absolute inset-2 rounded-full border border-dotted border-tertiary/30 rotate-reverse"></div>
+<!-- HUD Degree Markers -->
+<div class="absolute inset-0 flex items-center justify-between text-[8px] font-label text-tertiary/50 px-1 pointer-events-none">
+<span>090°</span>
+<span>270°</span>
+</div>
+<div class="absolute inset-0 flex flex-col items-center justify-between text-[8px] font-label text-tertiary/50 py-1 pointer-events-none">
+<span>000°</span>
+<span>180°</span>
+</div>
+<!-- SVG Circular Progress (50% Complete: 2 of 4 Gates) -->
+<svg class="absolute inset-0 w-full h-full -rotate-90" viewbox="0 0 160 160">
+<circle cx="80" cy="80" fill="transparent" r="68" stroke="#25252E" stroke-width="6"></circle>
+<circle class="filter drop-shadow-[0_0_8px_#00E5FF]" cx="80" cy="80" fill="transparent" r="68" stroke="#00E5FF" stroke-dasharray="427.25" stroke-dashoffset="213.6" stroke-linecap="round" stroke-width="6"></circle>
+</svg>
+<!-- Core Hologram Chamber -->
+<div class="relative w-32 h-32 rounded-full bg-surface-container/90 border border-tertiary/60 flex flex-col items-center justify-center overflow-hidden cyan-glow backdrop-blur-md">
+<!-- Hologram Scanline Bar -->
+<div class="absolute inset-0 scanline-effect pointer-events-none"></div>
+<!-- Digital telemetry coordinate tags -->
+<span class="absolute top-2 text-[8px] font-label text-tertiary/70 tracking-widest">GATE//02:50%</span>
+<!-- Holographic Droplet and Cup Icon -->
+<div class="relative flex items-center justify-center my-0.5">
+<span class="material-symbols-outlined text-[48px] text-tertiary drop-shadow-[0_0_12px_rgba(0,229,255,0.9)]" style="font-variation-settings: 'FILL' 1;">
+              water_full
+            </span>
+</div>
+<!-- Volume Target -->
+<div class="flex items-baseline gap-1 mt-0.5">
+<span class="font-headline text-xl text-on-surface leading-none tracking-wider">300</span>
+<span class="font-label text-[10px] text-tertiary font-bold">ML</span>
+</div>
+<span class="text-[8px] font-label text-on-surface-variant uppercase tracking-wider">OBRIGATÓRIO</span>
+</div>
+</div>
+<!-- ========================================== -->
+<!-- 3. IMPACT MESSAGING & SAFETY RULES         -->
+<!-- ========================================== -->
+<div class="text-center w-full px-2">
+<h1 class="font-headline text-3xl tracking-wide text-on-surface leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+          PAUSA OBRIGATÓRIA: <span class="text-tertiary">HORA DA ÁGUA!</span>
+</h1>
+<p class="font-body text-xs text-on-surface-variant mt-1.5 leading-relaxed max-w-[340px] mx-auto">
+          Você já completou <span class="text-secondary font-bold">4 bares</span> e <span class="text-primary font-bold">4.3 km</span>. Para manter a performance nos 10km e destravar as coordenadas do <span class="text-on-surface font-semibold underline decoration-tertiary underline-offset-2">Bar #05</span>, beba um copo cheio d'água (300ml) agora.
+        </p>
+</div>
+<!-- ========================================== -->
+<!-- 4. GAMIFIED REWARD CARD (Bento Glass Card) -->
+<!-- ========================================== -->
+<section class="w-full bg-surface-container/85 backdrop-blur-md border border-tertiary/40 rounded-xl p-3.5 shadow-xl relative overflow-hidden">
+<!-- Subtle Neon Cyan Accent Line at Card Top -->
+<div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-tertiary to-transparent"></div>
+<!-- Reward Header -->
+<div class="flex items-center justify-between border-b border-outline/30 pb-2.5 mb-3">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-tertiary/10 border border-tertiary/40 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[19px]">token</span>
+</div>
+<div>
+<div class="font-label text-[11px] font-bold text-on-surface tracking-wider">
+                +50 DRUNKCOINS
+              </div>
+<div class="font-label text-[9px] text-tertiary tracking-widest uppercase">
+                BÔNUS DE HIDRATAÇÃO
+              </div>
+</div>
+</div>
+<span class="font-label text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-secondary/15 text-secondary border border-secondary/30 flex items-center gap-1">
+<span class="material-symbols-outlined text-[11px]" style="font-variation-settings: 'FILL' 1;">bolt</span>
+            RECOMPENSA
+          </span>
+</div>
+<!-- 4-Step Hydration Stepper -->
+<div class="w-full mb-3">
+<div class="font-label text-[9px] font-bold text-on-surface-variant uppercase tracking-wider mb-2 flex justify-between">
+<span>PROGRESSO DOS GATES</span>
+<span class="text-tertiary">2 DE 4 CONCLUÍDOS</span>
+</div>
+<div class="grid grid-cols-4 gap-1.5">
+<!-- Step 1: Completed Bar #02 -->
+<div class="bg-surface-container-high/90 border border-secondary/40 rounded-lg p-1.5 flex flex-col items-center justify-center text-center">
+<div class="w-5 h-5 rounded-full bg-secondary/20 text-secondary flex items-center justify-center mb-1">
+<span class="material-symbols-outlined text-[13px] font-bold">check</span>
+</div>
+<span class="font-label text-[9px] font-bold text-secondary">Bar #02</span>
+<span class="font-label text-[8px] text-secondary/80">FEITO</span>
+</div>
+<!-- Step 2: Active Bar #04 (NOW) -->
+<div class="bg-tertiary/15 border-2 border-tertiary rounded-lg p-1.5 flex flex-col items-center justify-center text-center relative shadow-[0_0_12px_rgba(0,229,255,0.4)]">
+<div class="w-5 h-5 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center mb-1 animate-pulse">
+<span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">water_drop</span>
+</div>
+<span class="font-label text-[9px] font-bold text-tertiary">Bar #04</span>
+<span class="font-label text-[8px] bg-tertiary text-on-tertiary font-bold px-1 rounded-sm">AGORA</span>
+</div>
+<!-- Step 3: Locked Bar #06 -->
+<div class="bg-surface-container-low/60 border border-outline/25 rounded-lg p-1.5 flex flex-col items-center justify-center text-center opacity-65">
+<div class="w-5 h-5 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center mb-1">
+<span class="material-symbols-outlined text-[12px]">lock</span>
+</div>
+<span class="font-label text-[9px] text-on-surface-variant font-medium">Bar #06</span>
+<span class="font-label text-[8px] text-outline">TRAVADO</span>
+</div>
+<!-- Step 4: Locked Bar #08 -->
+<div class="bg-surface-container-low/60 border border-outline/25 rounded-lg p-1.5 flex flex-col items-center justify-center text-center opacity-65">
+<div class="w-5 h-5 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center mb-1">
+<span class="material-symbols-outlined text-[12px]">lock</span>
+</div>
+<span class="font-label text-[9px] text-on-surface-variant font-medium">Bar #08</span>
+<span class="font-label text-[8px] text-outline">TRAVADO</span>
+</div>
+</div>
+</div>
+<!-- Extra Tip / Science Badge -->
+<div class="bg-surface-container-lowest/80 border border-outline/20 rounded-lg p-2 flex items-start gap-2">
+<span class="material-symbols-outlined text-tertiary text-base shrink-0 mt-0.5">lightbulb</span>
+<p class="font-body text-[11px] text-on-surface-variant leading-tight">
+            Hidratar a cada 2 bares reduz a ressaca matinal em <strong class="text-on-surface font-semibold">70%</strong> e previne câimbras musculares durante a corrida noturna.
+          </p>
+</div>
+</section>
+<!-- Bar #05 Teaser Lock Preview -->
+<div class="w-full bg-surface-container-low/50 border border-outline/20 rounded-lg p-2.5 flex items-center justify-between text-xs">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline text-lg">navigation</span>
+<span class="font-label text-[10px] text-on-surface-variant">Próximo destino:</span>
+<span class="font-bold text-[11px] text-on-surface tracking-wide">Bar #05 (Distância: 1.1 km)</span>
+</div>
+<span class="font-label text-[9px] text-error font-bold tracking-widest uppercase flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">lock</span> AGUARDANDO
+        </span>
+</div>
+</main>
+<!-- ========================================== -->
+<!-- 5. STICKY BOTTOM ACTIONS & EMERGENCY LINK  -->
+<!-- ========================================== -->
+<div class="relative z-40 w-full px-4 pt-2 pb-3 flex flex-col gap-2">
+<!-- High-Voltage Tactile CTA Button -->
+<button class="w-full h-14 bg-tertiary hover:bg-tertiary/95 active:scale-95 transition-all duration-150 rounded-xl shadow-[0_0_25px_rgba(0,229,255,0.6)] flex items-center justify-center gap-2 px-4 group cursor-pointer" id="unlock-btn">
+<span class="material-symbols-outlined text-on-tertiary text-2xl font-bold group-hover:rotate-12 transition-transform" style="font-variation-settings: 'FILL' 1;">
+          water_drop
+        </span>
+<span class="font-headline text-lg tracking-wider text-on-tertiary uppercase leading-none mt-0.5">
+          JÁ BEBI MEU COPO D'ÁGUA — DESTRAVAR BAR #05
+        </span>
+</button>
+<!-- Crew / Medical Emergency Link -->
+<div class="w-full text-center">
+<a class="inline-flex items-center gap-1.5 font-label text-[10px] tracking-wide text-on-surface-variant hover:text-error transition-colors py-1" href="#emergency">
+<span class="material-symbols-outlined text-[14px] text-error">emergency</span>
+          Precisa de ajuda ou socorro médico? <span class="underline decoration-outline text-on-surface">Acionar apoio da Crew</span>
+</a>
+</div>
+</div>
+<!-- ========================================== -->
+<!-- PRESERVED BOTTOM NAVIGATION BAR            -->
+<!-- (Source of Truth JSON: ROTA is Active)     -->
+<!-- ========================================== -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-surface-container-lowest/90 dark:bg-surface-container-lowest/90 backdrop-blur-xl border-t border-outline/20 shadow-[0_-8px_30px_rgba(0,0,0,0.85)] max-w-[390px] left-1/2 -translate-x-1/2">
+<!-- Destino 1: ROTA (Active Lock Intent) -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary font-bold p-1 active:scale-90 transition-transform duration-150" href="#rota">
+<span class="material-symbols-outlined text-2xl" data-icon="route" style="font-variation-settings: 'FILL' 1;">route</span>
+<span class="font-label text-[10px] font-bold tracking-widest uppercase">ROTA</span>
+</a>
+<!-- Destino 2: RADAR -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-1 hover:text-primary transition-colors active:scale-90 transition-transform duration-150" href="#radar">
+<span class="material-symbols-outlined text-2xl" data-icon="radar">radar</span>
+<span class="font-label text-[10px] font-bold tracking-widest uppercase">RADAR</span>
+</a>
+<!-- Destino 3: CREW -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-1 hover:text-primary transition-colors active:scale-90 transition-transform duration-150" href="#crew">
+<span class="material-symbols-outlined text-2xl" data-icon="groups">groups</span>
+<span class="font-label text-[10px] font-bold tracking-widest uppercase">CREW</span>
+</a>
+<!-- Destino 4: PERFIL -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-1 hover:text-primary transition-colors active:scale-90 transition-transform duration-150" href="#perfil">
+<span class="material-symbols-outlined text-2xl" data-icon="person">person</span>
+<span class="font-label text-[10px] font-bold tracking-widest uppercase">PERFIL</span>
+</a>
+</nav>
+</div>
+<!-- Micro-interaction script -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const unlockBtn = document.getElementById('unlock-btn');
+      if (unlockBtn) {
+        unlockBtn.addEventListener('click', () => {
+          // Provide interactive tactile haptic visual feedback
+          unlockBtn.classList.remove('bg-tertiary');
+          unlockBtn.classList.add('bg-secondary', 'text-on-secondary');
+          unlockBtn.innerHTML = `
+            <span class="material-symbols-outlined text-2xl font-bold animate-spin" style="font-variation-settings: 'FILL' 1;">sync</span>
+            <span class="font-headline text-lg tracking-wider uppercase leading-none mt-0.5">VALIDANDO PROTOCOLO & GPS...</span>
+          `;
+          setTimeout(() => {
+            unlockBtn.innerHTML = `
+              <span class="material-symbols-outlined text-2xl font-bold" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+              <span class="font-headline text-lg tracking-wider uppercase leading-none mt-0.5">BAR #05 DESTRAVADO (+50 COINS)!</span>
+            `;
+          }, 1100);
+        });
+      }
+    });
+  </script>
+</body></html>

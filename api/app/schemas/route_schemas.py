@@ -1,0 +1,46 @@
+from pydantic import BaseModel, Field
+
+
+class CoordinateSchema(BaseModel):
+    latitude: float = Field(..., ge=-90.0, le=90.0)
+    longitude: float = Field(..., ge=-180.0, le=180.0)
+
+
+class BarSchema(BaseModel):
+    id: str
+    name: str
+    latitude: float
+    longitude: float
+    address: str | None = None
+    amenity: str = "bar"
+    order: int = 0
+    distanceFromPrevious: float = 0.0
+    checkedIn: bool = False
+
+
+class GenerateRouteRequest(BaseModel):
+    origin: CoordinateSchema
+    radius_km: float = Field(default=3.5, ge=1.0, le=10.0)
+    target_bars: int = Field(default=10, ge=2, le=15)
+    host_user_id: str | None = None
+    candidate_pool_override: list[BarSchema] | None = None
+
+
+class SwapBarRequest(BaseModel):
+    bar_index: int = Field(
+        ..., ge=0, description="Índice 0-based do bar na lista"
+    )
+
+
+class RouteSessionResponse(BaseModel):
+    session_id: str
+    status: str
+    origin: CoordinateSchema
+    origin_address: str
+    radius_km: float
+    totalDistanceMeters: float
+    totalDurationSeconds: float
+    bars: list[BarSchema]
+    polyline: list[CoordinateSchema]
+    availableSwapsCount: int
+    hydrationLocked: bool = False

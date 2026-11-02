@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>DRUNK // Check-in Validado &amp; Comanda</title>
+<!-- Google Fonts: Bebas Neue, Inter, Space Grotesk -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            background: '#121212',
+            surface: '#121212',
+            'surface-dim': '#0E0E11',
+            'surface-container-lowest': '#0B0B0E',
+            'surface-container-low': '#141418',
+            'surface-container': '#17171C',
+            'surface-container-high': '#1F1F26',
+            'surface-container-highest': '#292933',
+            'on-surface': '#FFFFFF',
+            'on-surface-variant': '#A8A8B3',
+            primary: '#FF5E00',
+            'on-primary': '#0E0E11',
+            'primary-container': '#3D1600',
+            'on-primary-container': '#FFB693',
+            secondary: '#00FF66',
+            'on-secondary': '#002109',
+            'secondary-container': '#003913',
+            'on-secondary-container': '#80FFB3',
+            tertiary: '#00E5FF',
+            'on-tertiary': '#001F24',
+            'tertiary-container': '#00363D',
+            'on-tertiary-container': '#9CF0FF',
+            error: '#FF3366',
+            'on-error': '#FFFFFF',
+            'error-container': '#4D0016',
+            'on-error-container': '#FFD9E0',
+            outline: '#383844',
+            'outline-variant': '#25252E',
+          },
+          borderRadius: {
+            DEFAULT: "0.5rem",
+            sm: "8px",
+            md: "12px",
+            lg: "18px",
+            xl: "24px",
+            full: "9999px"
+          },
+          fontFamily: {
+            display: ['"Bebas Neue"', 'sans-serif'],
+            headline: ['"Bebas Neue"', 'sans-serif'],
+            body: ['"Inter"', 'sans-serif'],
+            label: ['"Space Grotesk"', 'sans-serif'],
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    /* Radar pulse animations for geofence ring */
+    @keyframes radar-pulse {
+      0% {
+        transform: scale(0.85);
+        opacity: 0.8;
+      }
+      50% {
+        transform: scale(1.35);
+        opacity: 0.25;
+      }
+      100% {
+        transform: scale(1.65);
+        opacity: 0;
+      }
+    }
+    .animate-radar {
+      animation: radar-pulse 2.2s cubic-bezier(0.2, 0.8, 0.4, 1) infinite;
+    }
+    .animate-radar-delayed {
+      animation: radar-pulse 2.2s cubic-bezier(0.2, 0.8, 0.4, 1) infinite 0.75s;
+    }
+    @keyframes blink-cursor {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .animate-cursor {
+      animation: blink-cursor 0.9s infinite;
+    }
+    /* Smoked glass blur override */
+    .glass-hud {
+      background: rgba(23, 23, 28, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body select-none overflow-x-hidden antialiased min-h-screen relative flex justify-center items-start">
+<!-- Mobile Simulator Container (Viewport constraint for desktop rendering while native 100% mobile) -->
+<div class="w-full max-w-md min-h-screen relative flex flex-col bg-background overflow-hidden pb-20 shadow-2xl">
+<!-- ================================================================= -->
+<!-- 1. BACKGROUND LAYER: DIMMED NOCTURNAL RUN NAVIGATION MAP          -->
+<!-- ================================================================= -->
+<div class="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-85">
+<!-- Dark stylized canvas map with gridlines -->
+<svg class="w-full h-full object-cover" viewbox="0 0 420 840" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<radialgradient cx="62%" cy="28%" id="mapGlow" r="40%">
+<stop offset="0%" stop-color="#00FF66" stop-opacity="0.18"></stop>
+<stop offset="60%" stop-color="#121212" stop-opacity="0.95"></stop>
+<stop offset="100%" stop-color="#0E0E11" stop-opacity="1"></stop>
+</radialgradient>
+<filter height="160%" id="neonGreenGlow" width="160%" x="-30%" y="-30%">
+<fegaussianblur result="blur" stddeviation="4"></fegaussianblur>
+<fecomposite in="SourceGraphic" in2="blur" operator="over"></fecomposite>
+</filter>
+</defs>
+<!-- Asphalt night background -->
+<rect fill="#121212" height="100%" width="100%"></rect>
+<rect fill="url(#mapGlow)" height="100%" width="100%"></rect>
+<!-- Road Grid System -->
+<path d="M-20 180 L440 180 M-20 310 L440 310 M-20 460 L440 460" stroke="#1F1F26" stroke-linecap="round" stroke-width="8"></path>
+<path d="M120 -20 L120 860 M260 -20 L260 860 M380 -20 L380 860" stroke="#1F1F26" stroke-linecap="round" stroke-width="8"></path>
+<path d="M40 80 L390 410 M-10 240 L300 520" stroke="#17171C" stroke-dasharray="6 6" stroke-width="4"></path>
+<!-- Completed Segment #01 -> #02 (Cyber Green line) -->
+<path d="M 80 120 L 140 180 L 180 180 L 220 220" fill="none" opacity="0.85" stroke="#00FF66" stroke-linecap="round" stroke-linejoin="round" stroke-width="5"></path>
+<!-- Segment #02 -> #03 (Completed run to current check-in) -->
+<path d="M 220 220 L 240 260 L 260 250" fill="none" filter="url(#neonGreenGlow)" stroke="#00FF66" stroke-linecap="round" stroke-linejoin="round" stroke-width="5"></path>
+<!-- Future route polyline towards Bar #04 (dimmed neon orange) -->
+<path d="M 260 250 L 320 290 L 320 380 L 240 420" fill="none" opacity="0.45" stroke="#FF5E00" stroke-dasharray="5 5" stroke-width="3"></path>
+<!-- Bar #01 Completed Node -->
+<circle cx="80" cy="120" fill="#003913" r="10" stroke="#00FF66" stroke-width="2"></circle>
+<text fill="#00FF66" font-family="'Space Grotesk', sans-serif" font-size="9" font-weight="700" text-anchor="middle" x="80" y="124">✓</text>
+<text fill="#A8A8B3" font-family="'Space Grotesk', sans-serif" font-size="8" text-anchor="middle" x="80" y="105">#01 BECO</text>
+<!-- Bar #02 Completed Node -->
+<circle cx="220" cy="220" fill="#003913" r="10" stroke="#00FF66" stroke-width="2"></circle>
+<text fill="#00FF66" font-family="'Space Grotesk', sans-serif" font-size="9" font-weight="700" text-anchor="middle" x="220" y="224">✓</text>
+<text fill="#A8A8B3" font-family="'Space Grotesk', sans-serif" font-size="8" text-anchor="middle" x="210" y="208">#02 TOCA</text>
+<!-- Bar #03 (TARGET CURRENT GEOFENCE <=20M VALIDATED) -->
+<!-- Pulsing 20m Geofence Radar Halo Rings -->
+<circle class="animate-radar" cx="260" cy="250" fill="none" r="42" stroke="#00FF66" stroke-width="1.5"></circle>
+<circle class="animate-radar-delayed" cx="260" cy="250" fill="none" r="42" stroke="#00FF66" stroke-width="1"></circle>
+<!-- Geofence Zone Boundary Indicator (20m radius) -->
+<circle cx="260" cy="250" fill="#00FF66" fill-opacity="0.12" r="32" stroke="#00FF66" stroke-dasharray="3 3" stroke-width="1"></circle>
+<!-- Live GPS Runner Beacon (Accurate 12m inside radius) -->
+<circle cx="254" cy="255" fill="#00E5FF" filter="drop-shadow(0 0 6px #00E5FF)" r="5"></circle>
+<!-- Bar #03 Center Pin Badge -->
+<circle cx="260" cy="250" fill="#00FF66" filter="drop-shadow(0 0 12px #00FF66)" r="16"></circle>
+<text fill="#0E0E11" font-family="'Space Grotesk', sans-serif" font-size="12" font-weight="900" text-anchor="middle" x="260" y="255">03</text>
+</svg>
+</div>
+<!-- ================================================================= -->
+<!-- 2. TOP APP BAR (Shared Component Anchor)                           -->
+<!-- ================================================================= -->
+<header class="fixed top-4 left-4 right-4 max-w-[calc(448px-2rem)] mx-auto rounded-xl z-50 bg-surface-container/85 dark:bg-surface-container/85 backdrop-blur-md border border-outline/30 shadow-2xl shadow-black/80">
+<div class="flex justify-between items-center w-full px-4 py-3">
+<!-- Leading Icon -->
+<div class="flex items-center gap-2">
+<button aria-label="Localização" class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-container-high/60 hover:bg-surface-container-high active:scale-95 transition-all text-tertiary" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="near_me">near_me</span>
+</button>
+<div class="flex flex-col">
+<span class="font-display text-2xl tracking-wider text-primary dark:text-primary font-bold leading-none">DRUNK // 10K</span>
+<span class="font-label text-[9px] uppercase tracking-widest text-secondary flex items-center gap-1 mt-0.5 font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary inline-block animate-pulse"></span>
+              GPS ATIVO • 100% SINAL
+            </span>
+</div>
+</div>
+<!-- Trailing Action -->
+<button aria-label="Ajustes" class="flex items-center justify-center w-9 h-9 rounded-lg bg-surface-container-high/60 hover:bg-surface-container-high active:scale-95 transition-transform text-on-surface-variant" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="tune">tune</span>
+</button>
+</div>
+</header>
+<!-- Mini spacer to preserve top context viewing -->
+<div class="h-28 w-full shrink-0"></div>
+<!-- Map Contextual Floating Badge (Informs runner before looking at sheet) -->
+<div class="px-5 mb-2 relative z-10 flex justify-between items-center">
+<div class="bg-surface-container-low/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-secondary/30 flex items-center gap-2 shadow-lg">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="radar">radar</span>
+<span class="font-label text-[10px] tracking-wider text-secondary font-bold uppercase">PROXIMIDADE: 12 METROS</span>
+</div>
+<div class="bg-surface-container-low/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-outline/30 flex items-center gap-1.5 text-on-surface-variant font-label text-[10px] tracking-widest uppercase">
+<span class="material-symbols-outlined text-xs text-primary" data-icon="route">route</span>
+        2.8 / 10.0 KM
+      </div>
+</div>
+<!-- ================================================================= -->
+<!-- 3. PROMINENT CYBERPUNK GLASS BOTTOM SHEET MODAL (~78% VIEWPORT)   -->
+<!-- ================================================================= -->
+<div class="glass-hud rounded-t-xl border-t border-x border-secondary/40 shadow-[0_-16px_45px_rgba(0,0,0,0.92)] flex-1 relative z-30 mt-auto flex flex-col pt-3 pb-8 px-4 transition-all">
+<!-- Grab Handle Bar -->
+<div class="w-12 h-1.5 bg-outline/60 rounded-full mx-auto mb-3 shrink-0"></div>
+<!-- CELEBRATION STATUS PILL (<=20m Validated) -->
+<div class="w-full bg-secondary-container/50 border border-secondary/70 rounded-full px-3 py-2 flex items-center justify-between mb-4 shadow-[0_0_15px_rgba(0,255,102,0.18)] shrink-0">
+<div class="flex items-center gap-2">
+<div class="w-5 h-5 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold text-xs shrink-0">
+            ✓
+          </div>
+<span class="font-label text-[10px] md:text-[11px] font-bold tracking-wider text-secondary uppercase">
+            GEOFENCE VALIDADO (12m) • CHECK-IN #03 CONCLUÍDO
+          </span>
+</div>
+<span class="font-label text-[9px] text-on-secondary-container bg-surface-container-lowest/80 px-2 py-0.5 rounded uppercase font-bold tracking-widest border border-secondary/20">
+          STOP #03
+        </span>
+</div>
+<!-- BAR HEADER SECTION -->
+<div class="mb-4">
+<div class="flex justify-between items-start">
+<div>
+<h1 class="font-display text-4xl text-on-surface tracking-wider leading-none">
+              PUB VELHA GUARDA
+            </h1>
+<p class="font-label text-[11px] text-on-surface-variant mt-1.5 uppercase tracking-wide">
+              Parada 03/10 • Trecho: <span class="text-on-surface font-semibold">+940m</span> • Tempo: <span class="text-tertiary font-semibold">05m 28s</span>
+</p>
+</div>
+<!-- Verified Pin Badge -->
+<div class="flex flex-col items-end">
+<span class="font-label text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-md bg-surface-container-high border border-outline text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]" data-icon="check_circle">check_circle</span>
+              CONFIRMADO
+            </span>
+</div>
+</div>
+<!-- Tags / Badges -->
+<div class="flex items-center gap-2 mt-2">
+<span class="text-[10px] font-label tracking-widest text-on-surface-variant bg-surface-container-low px-2 py-0.5 rounded border border-outline/40 uppercase">
+            🍺 Pilsen &amp; Ipa Artesanal
+          </span>
+<span class="text-[10px] font-label tracking-widest text-primary bg-primary-container/40 px-2 py-0.5 rounded border border-primary/30 uppercase">
+            DRAFT BEER SPEED RUN
+          </span>
+</div>
+</div>
+<!-- COMANDA FINANCEIRA INPUT BOX -->
+<div class="bg-surface-dim border border-primary/60 rounded-xl p-3.5 mb-4 shadow-[0_0_20px_rgba(255,94,0,0.12)] relative overflow-hidden">
+<!-- Glowing edge highlight -->
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-xl pointer-events-none"></div>
+<div class="flex items-center justify-between mb-1.5">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-base" data-icon="receipt_long">receipt_long</span>
+<span class="font-label text-[11px] font-bold uppercase tracking-widest text-primary">
+              QUANTO VOCÊ GASTOU NESTE BAR?
+            </span>
+</div>
+<span class="font-label text-[9px] uppercase tracking-wider text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">
+            PARADA 03
+          </span>
+</div>
+<!-- Giant Currency Display with Animated Neon Cursor -->
+<div class="flex items-baseline justify-between py-1 border-b border-outline/30 mb-3">
+<div class="flex items-baseline gap-1">
+<span class="font-display text-4xl sm:text-5xl text-on-surface tracking-wider leading-none" id="currency-display">
+              R$ 28,00
+            </span>
+<span class="w-1 h-7 bg-primary rounded-full animate-cursor inline-block ml-1"></span>
+</div>
+<span class="font-label text-[10px] uppercase text-on-surface-variant tracking-wider font-semibold">
+            VALOR ESTIMADO
+          </span>
+</div>
+<!-- Quick-Add Chips Row -->
+<div class="grid grid-cols-4 gap-1.5">
+<button class="py-2 px-1 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline/40 font-label text-[11px] font-bold text-on-surface tracking-wider active:scale-95 transition-all text-center" type="button">
+            + R$ 15
+          </button>
+<!-- Active Highlighted Chip -->
+<button class="py-2 px-1 rounded-lg bg-primary/20 border border-primary text-primary font-label text-[11px] font-bold tracking-wider active:scale-95 transition-all shadow-[0_0_10px_rgba(255,94,0,0.25)] text-center" type="button">
+            + R$ 25
+          </button>
+<button class="py-2 px-1 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline/40 font-label text-[11px] font-bold text-on-surface tracking-wider active:scale-95 transition-all text-center" type="button">
+            + R$ 50
+          </button>
+<button class="py-2 px-1 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline/40 font-label text-[10px] font-bold text-on-surface-variant tracking-tighter active:scale-95 transition-all text-center" type="button">
+            R$ 0 (Água)
+          </button>
+</div>
+</div>
+<!-- DRINK / CONSUMPTION CATEGORY SELECTOR -->
+<div class="mb-4">
+<div class="flex items-center justify-between mb-2">
+<span class="font-label text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
+            CATEGORIA DE CONSUMO
+          </span>
+<span class="font-label text-[10px] uppercase text-tertiary tracking-wider font-bold">
+            1 SELECIONADO
+          </span>
+</div>
+<!-- 2x2 Grid of Tactile Cyber Pills -->
+<div class="grid grid-cols-2 gap-2">
+<!-- Selected Option: Chopp / Cerveja -->
+<button class="flex items-center gap-2.5 p-2.5 rounded-xl bg-primary/10 border-2 border-primary text-on-surface text-left shadow-[0_0_12px_rgba(255,94,0,0.2)] active:scale-95 transition-all" type="button">
+<span class="text-xl">🍺</span>
+<div class="flex flex-col">
+<span class="font-body font-bold text-xs text-primary leading-tight">Chopp / Cerveja</span>
+<span class="font-label text-[9px] text-on-surface-variant uppercase tracking-wider">Pilsen 400ml</span>
+</div>
+</button>
+<!-- Option: Drink / Dose -->
+<button class="flex items-center gap-2.5 p-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high border border-outline/50 text-on-surface-variant text-left active:scale-95 transition-all" type="button">
+<span class="text-xl">🍸</span>
+<div class="flex flex-col">
+<span class="font-body font-semibold text-xs text-on-surface leading-tight">Drink / Dose</span>
+<span class="font-label text-[9px] text-on-surface-variant uppercase tracking-wider">Gin, Vodka, Rum</span>
+</div>
+</button>
+<!-- Option: Água / Isotônico -->
+<button class="flex items-center gap-2.5 p-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high border border-outline/50 text-on-surface-variant text-left active:scale-95 transition-all" type="button">
+<span class="text-xl">💧</span>
+<div class="flex flex-col">
+<span class="font-body font-semibold text-xs text-on-surface leading-tight">Água / Isotônico</span>
+<span class="font-label text-[9px] text-tertiary uppercase tracking-wider">Gate Hidratação</span>
+</div>
+</button>
+<!-- Option: Petisco / Comida -->
+<button class="flex items-center gap-2.5 p-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high border border-outline/50 text-on-surface-variant text-left active:scale-95 transition-all" type="button">
+<span class="text-xl">🍟</span>
+<div class="flex flex-col">
+<span class="font-body font-semibold text-xs text-on-surface leading-tight">Petisco / Comida</span>
+<span class="font-label text-[9px] text-on-surface-variant uppercase tracking-wider">Porção Rápida</span>
+</div>
+</button>
+</div>
+</div>
+<!-- RUNNING FINANCIAL SUMMARY STRIP (TELEMETRY POD) -->
+<div class="bg-surface-container-lowest border border-outline/50 rounded-xl p-3 mb-4">
+<div class="flex items-center justify-between mb-1">
+<div class="flex items-center gap-2 text-xs">
+<span class="font-label text-[10px] text-on-surface-variant uppercase tracking-wider">
+              TOTAL ANTERIOR:
+            </span>
+<span class="font-display text-base text-on-surface-variant tracking-wider">
+              R$ 36,00
+            </span>
+</div>
+<span class="text-secondary font-bold text-xs">→</span>
+<div class="flex items-center gap-1.5">
+<span class="font-label text-[10px] text-secondary font-bold uppercase tracking-wider">
+              NOVO TOTAL:
+            </span>
+<span class="font-display text-lg text-secondary font-bold tracking-wider">
+              R$ 64,00
+            </span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-outline/20">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>
+<span class="font-label text-[9px] uppercase tracking-widest text-on-surface-variant">
+              3 de 10 Choppes / Consumos Registrados
+            </span>
+</div>
+<span class="font-label text-[9px] font-bold text-secondary uppercase tracking-widest">
+            30% DO CIRCUITO
+          </span>
+</div>
+</div>
+<!-- PRIMARY BOTTOM ACTION CTA -->
+<div class="w-full flex flex-col items-center gap-2.5">
+<button class="w-full h-14 bg-primary hover:bg-[#FF7524] text-on-primary font-display text-2xl tracking-wider uppercase rounded-xl flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(255,94,0,0.45)] active:scale-95 transition-all" type="button">
+<span>SALVAR COMANDA E LIBERAR BAR #04</span>
+<span class="material-symbols-outlined text-2xl" data-icon="lock_open">lock_open</span>
+</button>
+<button class="font-label text-[11px] text-on-surface-variant hover:text-on-surface uppercase tracking-widest py-1 underline underline-offset-4 decoration-outline hover:decoration-on-surface active:opacity-75 transition-colors" type="button">
+          Editar check-in ou pular registro de valor
+        </button>
+</div>
+</div>
+<!-- ================================================================= -->
+<!-- 4. BOTTOM NAVIGATION BAR (Shared Component Anchor)                -->
+<!-- ================================================================= -->
+<!-- Destination count: 4 | Labels: ["ROTA", "RADAR", "CREW", "PERFIL"] -->
+<!-- Active mapping: Check-in / Route stop map aligns with "ROTA"       -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-surface-container-lowest/90 dark:bg-surface-container-lowest/90 backdrop-blur-xl border-t border-outline/20 shadow-[0_-8px_30px_rgba(0,0,0,0.85)] max-w-md mx-auto right-0">
+<!-- Tab 1: ROTA (Active tab for Current GPS Run & Stop Check-in) -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary font-bold p-1 active:scale-90 transition-transform duration-150" href="#rota">
+<span class="material-symbols-outlined text-2xl" data-icon="route">route</span>
+<span class="font-label text-[10px] font-bold tracking-widest uppercase mt-0.5">ROTA</span>
+</a>
+<!-- Tab 2: RADAR (Proximity / Surrounding bars) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-1 hover:text-primary transition-colors active:scale-90 duration-150" href="#radar">
+<span class="material-symbols-outlined text-2xl" data-icon="radar">radar</span>
+<span class="font-label text-[10px] font-bold tracking-widest uppercase mt-0.5">RADAR</span>
+</a>
+<!-- Tab 3: CREW (Group Friends Leaderboard) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-1 hover:text-primary transition-colors active:scale-90 duration-150" href="#crew">
+<span class="material-symbols-outlined text-2xl" data-icon="groups">groups</span>
+<span class="font-label text-[10px] font-bold tracking-widest uppercase mt-0.5">CREW</span>
+</a>
+<!-- Tab 4: PERFIL (Runner Stats / Consumption Archive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-1 hover:text-primary transition-colors active:scale-90 duration-150" href="#perfil">
+<span class="material-symbols-outlined text-2xl" data-icon="person">person</span>
+<span class="font-label text-[10px] font-bold tracking-widest uppercase mt-0.5">PERFIL</span>
+</a>
+</nav>
+</div>
+</body></html>

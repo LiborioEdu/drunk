@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>DRUNK // 10K - Buscador e Gerador de Rotas</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            background: '#121212',
+            surface: '#121212',
+            'surface-dim': '#0E0E11',
+            'surface-container-lowest': '#0B0B0E',
+            'surface-container-low': '#141418',
+            'surface-container': '#17171C',
+            'surface-container-high': '#1F1F26',
+            'surface-container-highest': '#292933',
+            'on-surface': '#FFFFFF',
+            'on-surface-variant': '#A8A8B3',
+            primary: '#FF5E00',
+            'on-primary': '#0E0E11',
+            'primary-container': '#3D1600',
+            'on-primary-container': '#FFB693',
+            secondary: '#00FF66',
+            'on-secondary': '#002109',
+            'secondary-container': '#003913',
+            'on-secondary-container': '#80FFB3',
+            tertiary: '#00E5FF',
+            'on-tertiary': '#001F24',
+            'tertiary-container': '#00363D',
+            'on-tertiary-container': '#9CF0FF',
+            error: '#FF3366',
+            'on-error': '#FFFFFF',
+            'error-container': '#4D0016',
+            'on-error-container': '#FFD9E0',
+            outline: '#383844',
+            'outline-variant': '#25252E',
+          },
+          fontFamily: {
+            headline: ["Bebas Neue", "sans-serif"],
+            display: ["Bebas Neue", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            label: ["Space Grotesk", "monospace"],
+          },
+          borderRadius: {
+            DEFAULT: "0.5rem",
+            sm: "8px",
+            md: "12px",
+            lg: "18px",
+            xl: "24px",
+            full: "9999px"
+          },
+          boxShadow: {
+            'neon-orange': '0 0 20px rgba(255, 94, 0, 0.45)',
+            'neon-green': '0 0 25px rgba(0, 255, 102, 0.55)',
+            'neon-cyan': '0 0 20px rgba(0, 229, 255, 0.4)',
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    
+    /* Custom glow filters for SVG elements */
+    .glow-orange {
+      filter: drop-shadow(0 0 6px #FF5E00) drop-shadow(0 0 12px rgba(255, 94, 0, 0.6));
+    }
+    .glow-green {
+      filter: drop-shadow(0 0 8px #00FF66);
+    }
+    .glow-cyan {
+      filter: drop-shadow(0 0 6px #00E5FF);
+    }
+    
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(18, 18, 18, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #292933;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #FF5E00;
+    }
+
+    /* Radar sweep animation */
+    @keyframes radar-pulse {
+      0% { transform: scale(0.8); opacity: 0.8; }
+      50% { transform: scale(1.4); opacity: 0.2; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+    .animate-radar {
+      animation: radar-pulse 2.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body select-none overflow-hidden m-0 p-0 h-screen w-screen flex flex-col justify-between antialiased">
+<!-- ========================================================================= -->
+<!-- 1. FULLSCREEN NIGHT VECTOR MAP (Asphalt Cyberpunk Styling) -->
+<!-- ========================================================================= -->
+<div class="absolute inset-0 z-0 bg-[#0B0B0E] overflow-hidden pointer-events-none">
+<svg class="w-full h-full object-cover" fill="none" viewbox="0 0 400 860" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<!-- Subtle city block pattern -->
+<pattern height="40" id="grid-pattern" patternunits="userSpaceOnUse" width="40">
+<path d="M 40 0 L 0 0 0 40" fill="none" stroke="#17171C" stroke-width="0.8"></path>
+</pattern>
+<!-- Neon route glow -->
+<filter height="140%" id="routeGlow" width="140%" x="-20%" y="-20%">
+<fegaussianblur result="coloredBlur" stddeviation="3.5"></fegaussianblur>
+<femerge>
+<femergenode in="coloredBlur"></femergenode>
+<femergenode in="SourceGraphic"></femergenode>
+</femerge>
+</filter>
+<radialgradient cx="50%" cy="50%" id="radarGrad" r="50%">
+<stop offset="0%" stop-color="#00E5FF" stop-opacity="0.18"></stop>
+<stop offset="70%" stop-color="#00E5FF" stop-opacity="0.04"></stop>
+<stop offset="100%" stop-color="#00E5FF" stop-opacity="0"></stop>
+</radialgradient>
+</defs>
+<!-- Background Grid Coordinates Base -->
+<rect fill="#0E0E11" height="860" width="400"></rect>
+<rect fill="url(#grid-pattern)" height="860" opacity="0.6" width="400"></rect>
+<!-- Minimalist Street Geometry (Dark Nocturnal Lines) -->
+<!-- Avenidas Principais -->
+<path d="M-50 180 L450 150" stroke="#1D1D26" stroke-linecap="round" stroke-width="22"></path>
+<path d="M-20 340 L420 380" stroke="#1D1D26" stroke-linecap="round" stroke-width="18"></path>
+<path d="M120 -40 L90 900" stroke="#1D1D26" stroke-linecap="round" stroke-width="26"></path>
+<path d="M280 -20 L310 900" stroke="#1D1D26" stroke-linecap="round" stroke-width="20"></path>
+<!-- Ruas Secundárias -->
+<path d="M10 80 L390 110" stroke="#17171E" stroke-width="8"></path>
+<path d="M-10 240 L380 270" stroke="#17171E" stroke-width="10"></path>
+<path d="M30 450 L390 440" stroke="#17171E" stroke-width="8"></path>
+<path d="M0 580 L400 560" stroke="#17171E" stroke-width="10"></path>
+<path d="M200 -10 L190 700" stroke="#17171E" stroke-width="10"></path>
+<path d="M30 0 L40 600" stroke="#15151B" stroke-width="6"></path>
+<!-- Rua Augusta Highlight Line (Dark Grey Accent) -->
+<text fill="#383844" font-family="Space Grotesk" font-size="8" font-weight="700" letter-spacing="2" transform="rotate(84 105 210)" x="105" y="210">RUA AUGUSTA</text>
+<text fill="#383844" font-family="Space Grotesk" font-size="8" font-weight="700" letter-spacing="2" transform="rotate(3 215 320)" x="215" y="320">AL. SANTOS</text>
+<!-- Proximity Radar Ring (around starting area) -->
+<circle cx="108" cy="275" fill="url(#radarGrad)" opacity="0.45" r="95" stroke="#00E5FF" stroke-dasharray="4 4" stroke-width="1"></circle>
+<circle cx="108" cy="275" opacity="0.25" r="135" stroke="#00E5FF" stroke-dasharray="2 6" stroke-width="0.75"></circle>
+<!-- Neon Orange Sinuous Polyline Route (10.2 KM Circuit) -->
+<path d="M 108 275 
+               L 108 230 
+               L 165 230 
+               L 165 190 
+               L 260 190 
+               L 260 250 
+               L 295 250 
+               L 295 330 
+               L 230 330 
+               L 230 400 
+               L 140 400 
+               L 140 350 
+               L 60 350 
+               L 60 275 
+               Z" fill="none" filter="url(#routeGlow)" stroke="#FF5E00" stroke-linecap="round" stroke-linejoin="round" stroke-width="5"></path>
+<!-- Route Outer Thin Core for Cyberpunk Precision -->
+<path d="M 108 275 L 108 230 L 165 230 L 165 190 L 260 190 L 260 250 L 295 250 L 295 330 L 230 330 L 230 400 L 140 400 L 140 350 L 60 350 L 60 275 Z" fill="none" stroke="#FFF2EB" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+<!-- PINS: BAR #01 through #10 along the route path -->
+<!-- #01 -->
+<g transform="translate(108, 230)">
+<circle fill="#FF5E00" filter="url(#routeGlow)" r="9"></circle>
+<circle fill="#FF5E00" r="7.5"></circle>
+<text fill="#0E0E11" font-family="Space Grotesk" font-size="8" font-weight="700" text-anchor="middle" y="3">01</text>
+</g>
+<!-- #02 -->
+<g transform="translate(165, 230)">
+<circle fill="#FF5E00" filter="url(#routeGlow)" r="9"></circle>
+<circle fill="#FF5E00" r="7.5"></circle>
+<text fill="#0E0E11" font-family="Space Grotesk" font-size="8" font-weight="700" text-anchor="middle" y="3">02</text>
+</g>
+<!-- #03 -->
+<g transform="translate(165, 190)">
+<circle fill="#FF5E00" filter="url(#routeGlow)" r="9"></circle>
+<circle fill="#FF5E00" r="7.5"></circle>
+<text fill="#0E0E11" font-family="Space Grotesk" font-size="8" font-weight="700" text-anchor="middle" y="3">03</text>
+</g>
+<!-- #04 -->
+<g transform="translate(260, 190)">
+<circle fill="#FF5E00" filter="url(#routeGlow)" r="9"></circle>
+<circle fill="#FF5E00" r="7.5"></circle>
+<text fill="#0E0E11" font-family="Space Grotesk" font-size="8" font-weight="700" text-anchor="middle" y="3">04</text>
+</g>
+<!-- #05 -->
+<g transform="translate(260, 250)">
+<circle fill="#FF5E00" filter="url(#routeGlow)" r="9"></circle>
+<circle fill="#FF5E00" r="7.5"></circle>
+<text fill="#0E0E11" font-family="Space Grotesk" font-size="8" font-weight="700" text-anchor="middle" y="3">05</text>
+</g>
+<!-- #06 -->
+<g transform="translate(295, 290)">
+<circle fill="#FF5E00" filter="url(#routeGlow)" r="9"></circle>
+<circle fill="#FF5E00" r="7.5"></circle>
+<text fill="#0E0E11" font-family="Space Grotesk" font-size="8" font-weight="700" text-anchor="middle" y="3">06</text>
+</g>
+<!-- #07 -->
+<g transform="translate(230, 330)">
+<circle fill="#FF5E00" filter="url(#routeGlow)" r="9"></circle>
+<circle fill="#FF5E00" r="7.5"></circle>
+<text fill="#0E0E11" font-family="Space Grotesk" font-size="8" font-weight="700" text-anchor="middle" y="3">07</text>
+</g>
+<!-- #08 -->
+<g transform="translate(230, 400)">
+<circle fill="#FF5E00" filter="url(#routeGlow)" r="9"></circle>
+<circle fill="#FF5E00" r="7.5"></circle>
+<text fill="#0E0E11" font-family="Space Grotesk" font-size="8" font-weight="700" text-anchor="middle" y="3">08</text>
+</g>
+<!-- #09 -->
+<g transform="translate(140, 375)">
+<circle fill="#FF5E00" filter="url(#routeGlow)" r="9"></circle>
+<circle fill="#FF5E00" r="7.5"></circle>
+<text fill="#0E0E11" font-family="Space Grotesk" font-size="8" font-weight="700" text-anchor="middle" y="3">09</text>
+</g>
+<!-- #10 -->
+<g transform="translate(60, 320)">
+<circle fill="#FF5E00" filter="url(#routeGlow)" r="9"></circle>
+<circle fill="#FF5E00" r="7.5"></circle>
+<text fill="#0E0E11" font-family="Space Grotesk" font-size="8" font-weight="700" text-anchor="middle" y="3">10</text>
+</g>
+<!-- START / LARGADA (Cyber Green Halo) -->
+<g transform="translate(108, 275)">
+<circle class="animate-radar origin-center" fill="none" opacity="0.4" r="20" stroke="#00FF66" stroke-width="1.5"></circle>
+<circle class="glow-green" fill="#002109" r="12" stroke="#00FF66" stroke-width="2.5"></circle>
+<circle fill="#00FF66" r="5"></circle>
+</g>
+<!-- Floating Pin Label for Largada -->
+<g transform="translate(108, 298)">
+<rect fill="#0E0E11" height="18" rx="4" stroke="#00FF66" stroke-width="1" width="68" x="-34" y="0"></rect>
+<text fill="#00FF66" font-family="Space Grotesk" font-size="8.5" font-weight="700" letter-spacing="1.5" text-anchor="middle" x="0" y="12">LARGADA</text>
+</g>
+</svg>
+</div>
+<!-- ========================================================================= -->
+<!-- 2. TOP FLOATING APP BAR & LOCATION / NEIGHBORHOOD HUD -->
+<!-- Shared Component: TopAppBar Anchored Execution -->
+<!-- ========================================================================= -->
+<header class="fixed top-4 left-4 right-4 z-50">
+<div class="bg-surface-container/85 backdrop-blur-md border border-outline/30 rounded-xl shadow-2xl shadow-black/80 p-3.5 flex flex-col gap-2.5 transition-all">
+<!-- Row 1: Brand Anchor + GPS Telemetry Pill -->
+<div class="flex items-center justify-between">
+<!-- Exact JSON Token headline styling: font-display text-2xl tracking-wider text-primary -->
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="near_me">near_me</span>
+<span class="font-display text-2xl tracking-wider text-primary font-bold">DRUNK // 10K</span>
+</div>
+<!-- Telemetry Status Pill -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-container/40 border border-tertiary/30">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse shadow-neon-cyan"></span>
+<span class="font-label text-[10px] font-bold text-tertiary tracking-wider uppercase">GPS ATIVO • 4M</span>
+</div>
+<!-- Trail Tuning Icon Button -->
+<button class="w-8 h-8 rounded-lg bg-surface-container-high/60 border border-outline/40 flex items-center justify-center text-on-surface hover:text-primary active:scale-95 transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="tune">tune</span>
+</button>
+</div>
+<!-- Row 2: Selected Start Location & Quick Edit -->
+<div class="flex items-center justify-between bg-surface-container-lowest/80 border border-outline-variant/60 rounded-lg px-3 py-2">
+<div class="flex items-center space-x-2.5 truncate">
+<span class="material-symbols-outlined text-secondary text-base glow-green" data-icon="location_on" data-weight="fill" style="font-variation-settings: 'FILL' 1;">location_on</span>
+<div class="truncate">
+<span class="text-[10px] text-on-surface-variant font-label uppercase tracking-widest block leading-none">Ponto de Partida</span>
+<span class="text-xs font-semibold text-on-surface truncate block mt-0.5">Rua Augusta, 1420 — Consolação</span>
+</div>
+</div>
+<button class="text-primary hover:text-on-primary-container font-label text-[10px] font-bold tracking-widest uppercase px-2 py-1 rounded bg-primary-container/40 border border-primary/20 shrink-0 active:scale-95 transition-all">
+          EDITAR
+        </button>
+</div>
+<!-- Row 3: Horizontal Scrollable Neighborhood Filters -->
+<div class="flex items-center space-x-2 overflow-x-auto no-scrollbar pt-0.5 pb-0.5">
+<!-- Active Tag -->
+<button class="px-3 py-1 rounded-full bg-primary/20 border border-primary text-primary font-label text-[11px] font-bold tracking-wider whitespace-nowrap shadow-neon-orange active:scale-95 transition-transform">
+          Augusta
+        </button>
+<button class="px-3 py-1 rounded-full bg-surface-container-low/90 border border-outline/40 text-on-surface-variant hover:text-on-surface font-label text-[11px] font-bold tracking-wider whitespace-nowrap active:scale-95 transition-transform">
+          Vila Madalena
+        </button>
+<button class="px-3 py-1 rounded-full bg-surface-container-low/90 border border-outline/40 text-on-surface-variant hover:text-on-surface font-label text-[11px] font-bold tracking-wider whitespace-nowrap active:scale-95 transition-transform">
+          Pinheiros
+        </button>
+<button class="px-3 py-1 rounded-full bg-surface-container-low/90 border border-outline/40 text-on-surface-variant hover:text-on-surface font-label text-[11px] font-bold tracking-wider whitespace-nowrap active:scale-95 transition-transform">
+          Baixo Augusta
+        </button>
+<button class="px-3 py-1 rounded-full bg-surface-container-low/90 border border-outline/40 text-on-surface-variant hover:text-on-surface font-label text-[11px] font-bold tracking-wider whitespace-nowrap active:scale-95 transition-transform">
+          Centro Histórico
+        </button>
+</div>
+</div>
+</header>
+<!-- ========================================================================= -->
+<!-- 3. RIGHT FLOATING MAP CONTROLS -->
+<!-- ========================================================================= -->
+<aside class="fixed right-4 top-48 z-30 flex flex-col gap-2">
+<div class="bg-surface-container/90 backdrop-blur-xl border border-outline/40 rounded-xl p-1 shadow-2xl flex flex-col items-center">
+<button class="w-10 h-10 rounded-lg flex items-center justify-center text-on-surface hover:text-primary active:scale-90 transition-all border-b border-outline/30">
+<span class="material-symbols-outlined text-xl" data-icon="add">add</span>
+</button>
+<button class="w-10 h-10 rounded-lg flex items-center justify-center text-on-surface hover:text-primary active:scale-90 transition-all">
+<span class="material-symbols-outlined text-xl" data-icon="remove">remove</span>
+</button>
+</div>
+<button class="w-10 h-10 rounded-xl bg-surface-container/90 backdrop-blur-xl border border-tertiary/40 flex items-center justify-center text-tertiary shadow-lg hover:border-tertiary active:scale-90 transition-all">
+<span class="material-symbols-outlined text-xl" data-icon="my_location">my_location</span>
+</button>
+<button class="w-10 h-10 rounded-xl bg-surface-container/90 backdrop-blur-xl border border-primary/40 flex items-center justify-center text-primary shadow-lg hover:border-primary active:scale-90 transition-all">
+<span class="material-symbols-outlined text-xl" data-icon="fit_screen">fit_screen</span>
+</button>
+</aside>
+<!-- ========================================================================= -->
+<!-- 4. SLIDING HUD BOTTOM SHEET (48% Screen - Metrics & Bars Timeline) -->
+<!-- ========================================================================= -->
+<section class="relative z-40 w-full mt-auto bg-surface-container/95 backdrop-blur-2xl rounded-t-3xl border-t border-primary/30 p-4 pb-20 shadow-[0_-15px_40px_rgba(0,0,0,0.92)] flex flex-col max-h-[442px] transition-all">
+<!-- Grabber Handle -->
+<div class="w-12 h-1.5 bg-[#33333E] rounded-full mx-auto mb-3.5 shrink-0"></div>
+<!-- 3-Column High-Impact Metrics Banner (Bebas Neue) -->
+<div class="grid grid-cols-3 gap-2 py-2 px-3 bg-surface-container-lowest/80 rounded-xl border border-outline-variant/60 shrink-0">
+<!-- Metric 1: Real Distance -->
+<div class="flex flex-col items-center justify-center border-r border-outline-variant/40 pr-1">
+<div class="flex items-baseline space-x-0.5">
+<span class="font-display text-2xl text-primary leading-none tracking-wide">10.2</span>
+<span class="font-display text-sm text-primary tracking-tight">KM</span>
+</div>
+<span class="font-label text-[9px] text-on-surface-variant font-bold tracking-wider uppercase mt-1">DISTÂNCIA REAL</span>
+</div>
+<!-- Metric 2: Pit Stops -->
+<div class="flex flex-col items-center justify-center border-r border-outline-variant/40 px-1">
+<div class="flex items-baseline space-x-0.5">
+<span class="font-display text-2xl text-secondary leading-none tracking-wide">10</span>
+<span class="font-display text-sm text-secondary tracking-tight">BARES</span>
+</div>
+<span class="font-label text-[9px] text-on-surface-variant font-bold tracking-wider uppercase mt-1">CHECKPOINTS</span>
+</div>
+<!-- Metric 3: Time Estimate -->
+<div class="flex flex-col items-center justify-center pl-1">
+<div class="flex items-baseline space-x-0.5">
+<span class="font-display text-2xl text-on-surface leading-none tracking-wide">1H 58M</span>
+</div>
+<span class="font-label text-[9px] text-on-surface-variant font-bold tracking-wider uppercase mt-1">ESTIMATIVA TOTAL</span>
+</div>
+</div>
+<!-- Section Sub-Header -->
+<div class="flex items-center justify-between pt-3 pb-1.5 shrink-0">
+<div class="flex items-center space-x-2">
+<span class="w-2 h-2 rounded-full bg-primary shadow-neon-orange"></span>
+<h3 class="font-headline text-lg tracking-wider text-on-surface leading-none">ITINERÁRIO DOS 10 BARES</h3>
+</div>
+<span class="font-label text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">SEGMENTOS CONECTADOS</span>
+</div>
+<!-- Scrollable Vertical Route Timeline (Stops #01 to #04 previewed) -->
+<div class="overflow-y-auto space-y-2.5 pr-1 my-1 flex-1">
+<!-- Stop #01 -->
+<div class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-high/60 border border-outline/30 hover:border-primary/40 transition-colors">
+<div class="flex items-center space-x-3 truncate">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary font-label text-xs font-bold flex items-center justify-center shrink-0 shadow-neon-orange">
+            01
+          </div>
+<div class="truncate">
+<div class="flex items-center space-x-2">
+<span class="text-sm font-bold text-on-surface truncate">Boteco Neon Augusta</span>
+<span class="font-label text-[9px] text-primary bg-primary-container/40 px-1.5 py-0.5 rounded border border-primary/20">+980m</span>
+</div>
+<span class="text-[11px] text-on-surface-variant truncate block">Pilsen Artesanal • Rua Augusta, 890</span>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container-highest/60 border border-primary/30 flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary active:scale-90 transition-all shrink-0 ml-2" title="Trocar bar">
+<span class="material-symbols-outlined text-base" data-icon="swap_horiz">swap_horiz</span>
+</button>
+</div>
+<!-- Stop #02 -->
+<div class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-high/60 border border-outline/30 hover:border-primary/40 transition-colors">
+<div class="flex items-center space-x-3 truncate">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary font-label text-xs font-bold flex items-center justify-center shrink-0 shadow-neon-orange">
+            02
+          </div>
+<div class="truncate">
+<div class="flex items-center space-x-2">
+<span class="text-sm font-bold text-on-surface truncate">Cervejaria Subsolo</span>
+<span class="font-label text-[9px] text-primary bg-primary-container/40 px-1.5 py-0.5 rounded border border-primary/20">+1.05km</span>
+</div>
+<span class="text-[11px] text-on-surface-variant truncate block">IPA da Casa • Rua Frei Caneca, 420</span>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container-highest/60 border border-primary/30 flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary active:scale-90 transition-all shrink-0 ml-2" title="Trocar bar">
+<span class="material-symbols-outlined text-base" data-icon="swap_horiz">swap_horiz</span>
+</button>
+</div>
+<!-- Stop #03 -->
+<div class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-high/60 border border-outline/30 hover:border-primary/40 transition-colors">
+<div class="flex items-center space-x-3 truncate">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary font-label text-xs font-bold flex items-center justify-center shrink-0 shadow-neon-orange">
+            03
+          </div>
+<div class="truncate">
+<div class="flex items-center space-x-2">
+<span class="text-sm font-bold text-on-surface truncate">Pub Velha Guarda</span>
+<span class="font-label text-[9px] text-primary bg-primary-container/40 px-1.5 py-0.5 rounded border border-primary/20">+940m</span>
+</div>
+<span class="text-[11px] text-on-surface-variant truncate block">Chopp Escuro • Rua Bela Cintra, 650</span>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container-highest/60 border border-primary/30 flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary active:scale-90 transition-all shrink-0 ml-2" title="Trocar bar">
+<span class="material-symbols-outlined text-base" data-icon="swap_horiz">swap_horiz</span>
+</button>
+</div>
+<!-- Stop #04 -->
+<div class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-high/60 border border-outline/30 hover:border-primary/40 transition-colors">
+<div class="flex items-center space-x-3 truncate">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary font-label text-xs font-bold flex items-center justify-center shrink-0 shadow-neon-orange">
+            04
+          </div>
+<div class="truncate">
+<div class="flex items-center space-x-2">
+<span class="text-sm font-bold text-on-surface truncate">Cyber Bar 2077</span>
+<span class="font-label text-[9px] text-primary bg-primary-container/40 px-1.5 py-0.5 rounded border border-primary/20">+1.12km</span>
+</div>
+<span class="text-[11px] text-on-surface-variant truncate block">Craft Lager • Al. Santos, 110</span>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container-highest/60 border border-primary/30 flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary active:scale-90 transition-all shrink-0 ml-2" title="Trocar bar">
+<span class="material-symbols-outlined text-base" data-icon="swap_horiz">swap_horiz</span>
+</button>
+</div>
+</div>
+<!-- Sticky Bottom Primary Action (Cyber Green Button) -->
+<div class="pt-2 shrink-0">
+<button class="w-full h-14 bg-secondary hover:bg-[#1AFF75] text-[#0E0E11] font-label text-xs font-bold tracking-widest uppercase rounded-xl flex items-center justify-center gap-2.5 shadow-neon-green active:scale-95 transition-all">
+<span class="material-symbols-outlined text-2xl font-bold" data-icon="play_arrow" data-weight="fill" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+<span>TRAVAR ROTA E INICIAR CORRIDA (10KM)</span>
+</button>
+</div>
+</section>
+<!-- ========================================================================= -->
+<!-- 5. SHARED COMPONENT: BottomNavBar -->
+<!-- Immutable labels: ["ROTA", "RADAR", "CREW", "PERFIL"] -->
+<!-- Active state: 'ROTA' (exact match with Buscador e Gerador de Rotas) -->
+<!-- ========================================================================= -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_-8px_30px_rgba(0,0,0,0.85)]">
+<!-- Item 0: ROTA (ACTIVE) -->
+<button class="flex flex-col items-center justify-center text-primary font-bold p-1 active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined text-2xl" data-icon="route">route</span>
+<span class="font-label text-[10px] font-bold tracking-widest uppercase mt-0.5">ROTA</span>
+</button>
+<!-- Item 1: RADAR (INACTIVE) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary p-1 active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined text-2xl" data-icon="radar">radar</span>
+<span class="font-label text-[10px] font-bold tracking-widest uppercase mt-0.5">RADAR</span>
+</button>
+<!-- Item 2: CREW (INACTIVE) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary p-1 active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined text-2xl" data-icon="groups">groups</span>
+<span class="font-label text-[10px] font-bold tracking-widest uppercase mt-0.5">CREW</span>
+</button>
+<!-- Item 3: PERFIL (INACTIVE) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary p-1 active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined text-2xl" data-icon="person">person</span>
+<span class="font-label text-[10px] font-bold tracking-widest uppercase mt-0.5">PERFIL</span>
+</button>
+</nav>
+<!-- Micro-interactions Script -->
+<script>
+    // Smooth interaction handlers
+    document.addEventListener('DOMContentLoaded', () => {
+      const swapButtons = document.querySelectorAll('[title="Trocar bar"]');
+      swapButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          btn.classList.add('rotate-180');
+          setTimeout(() => btn.classList.remove('rotate-180'), 300);
+        });
+      });
+    });
+  </script>
+</body></html>

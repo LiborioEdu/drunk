@@ -1,0 +1,162 @@
+[
+  {
+    "id": "the_01_champions_restobar",
+    "name": "The Champions Restobar",
+    "latitude": -5.0645,
+    "longitude": -42.7788,
+    "address": "Zona Leste • Teresina, PI",
+    "amenity": "bar"
+  },
+  {
+    "id": "the_02_esquina_leste",
+    "name": "Esquina Leste Bar e Espetaria",
+    "latitude": -5.0691,
+    "longitude": -42.7812,
+    "address": "Zona Leste • Teresina, PI",
+    "amenity": "espetinho"
+  },
+  {
+    "id": "the_03_up_resto_pub",
+    "name": "Up Resto Pub",
+    "latitude": -5.0621,
+    "longitude": -42.7765,
+    "address": "Zona Leste • Teresina, PI",
+    "amenity": "pub"
+  },
+  {
+    "id": "the_04_varanda_boteco",
+    "name": "Varanda Boteco",
+    "latitude": -5.0723,
+    "longitude": -42.7934,
+    "address": "Fátima / Jóquei • Teresina, PI",
+    "amenity": "bar"
+  },
+  {
+    "id": "the_05_roots_rock_pub",
+    "name": "Roots Rock Pub",
+    "latitude": -5.0711,
+    "longitude": -42.7915,
+    "address": "Jóquei • Teresina, PI",
+    "amenity": "pub"
+  },
+  {
+    "id": "the_06_meduzza_bar",
+    "name": "MEDUZZA - Bar and Cocktail",
+    "latitude": -5.0689,
+    "longitude": -42.783,
+    "address": "Zona Leste • Teresina, PI",
+    "amenity": "bar"
+  },
+  {
+    "id": "the_07_al_capone_pub",
+    "name": "Al Capone Pub Rock and Blues",
+    "latitude": -5.0667,
+    "longitude": -42.7801,
+    "address": "Zona Leste • Teresina, PI",
+    "amenity": "pub"
+  },
+  {
+    "id": "the_08_boteco_do_ze_original",
+    "name": "Boteco do Zé Original",
+    "latitude": -5.0754,
+    "longitude": -42.7956,
+    "address": "Fátima • Teresina, PI",
+    "amenity": "bar"
+  },
+  {
+    "id": "the_09_bruhaus_cervejaria",
+    "name": "Bruhaus Cervejaria",
+    "latitude": -5.0678,
+    "longitude": -42.7822,
+    "address": "Zona Leste • Teresina, PI",
+    "amenity": "brewery"
+  },
+  {
+    "id": "the_10_fabrica_manhana",
+    "name": "Fábrica Manhana",
+    "latitude": -5.065,
+    "longitude": -42.779,
+    "address": "Zona Leste • Teresina, PI",
+    "amenity": "brewery"
+  },
+  {
+    "id": "the_11_bierbrau_cervejas",
+    "name": "Bierbrau Cervejas Especiais",
+    "latitude": -5.07,
+    "longitude": -42.785,
+    "address": "Jóquei • Teresina, PI",
+    "amenity": "brewery"
+  },
+  {
+    "id": "the_12_espeto_beer",
+    "name": "Espeto Beer",
+    "latitude": -5.0801,
+    "longitude": -42.7602,
+    "address": "Uruguai / São Cristóvão • Teresina, PI",
+    "amenity": "espetinho"
+  },
+  {
+    "id": "the_13_clovis_rockbar",
+    "name": "Clóvis RockBar",
+    "latitude": -5.082,
+    "longitude": -42.755,
+    "address": "Uruguai • Teresina, PI",
+    "amenity": "pub"
+  },
+  {
+    "id": "the_14_chama",
+    "name": "Chama",
+    "latitude": -5.0715,
+    "longitude": -42.786,
+    "address": "Jóquei • Teresina, PI",
+    "amenity": "bar"
+  },
+  {
+    "id": "the_15_sombra_do_cajueiro",
+    "name": "Bar e Restaurante Sombra do Cajueiro",
+    "latitude": -5.074,
+    "longitude": -42.794,
+    "address": "Fátima • Teresina, PI",
+    "amenity": "bar"
+  },
+  {
+    "id": "the_16_quintal_aroeira",
+    "name": "Quintal Aroeira",
+    "latitude": -5.073,
+    "longitude": -42.792,
+    "address": "Jóquei / Fátima • Teresina, PI",
+    "amenity": "bar"
+  },
+  {
+    "id": "the_17_seu_ze_restobar",
+    "name": "Seu Zé Restobar",
+    "latitude": -5.0745,
+    "longitude": -42.79,
+    "address": "Jóquei • Teresina, PI",
+    "amenity": "bar"
+  },
+  {
+    "id": "the_18_flyer_bar",
+    "name": "Flyer Bar",
+    "latitude": -5.072,
+    "longitude": -42.791,
+    "address": "Jóquei • Teresina, PI",
+    "amenity": "bar"
+  },
+  {
+    "id": "the_19_iver_bar",
+    "name": "Iver Bar",
+    "latitude": -5.078,
+    "longitude": -42.785,
+    "address": "São Cristóvão • Teresina, PI",
+    "amenity": "bar"
+  },
+  {
+    "id": "the_20_resenha_bar_churrascaria",
+    "name": "Resenha Bar e Churrascaria",
+    "latitude": -5.0725,
+    "longitude": -42.7915,
+    "address": "Jóquei • Teresina, PI",
+    "amenity": "espetinho"
+  }
+]
