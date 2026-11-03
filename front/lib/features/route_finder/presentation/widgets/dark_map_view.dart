@@ -23,15 +23,19 @@ class DarkMapView extends StatefulWidget {
   final double searchRadiusKm;
   final List<Bar> cityBars;
   final bool isRegisteringBarMode;
+  final bool isManualRouteMode;
   final String? highlightedCityBarId;
   final DrunkRoute? route;
   final int? selectedBarIndex;
   final Function(LatLng point)? onSelectOrigin;
   final Function(LatLng point)? onRegisterBarAtPoint;
+  final Function(LatLng point)? onAddManualStopAtPoint;
   final ValueChanged<Bar>? onTapCityBar;
+  final ValueChanged<Bar>? onAddCityBarToRoute;
   final ValueChanged<Bar>? onEditCityBar;
   final VoidCallback? onCenterMyLocation;
   final Function(int barIndex)? onSelectBar;
+  final Function(int barIndex)? onRemoveBar;
 
   const DarkMapView({
     super.key,
@@ -47,15 +51,19 @@ class DarkMapView extends StatefulWidget {
     this.searchRadiusKm = 3.5,
     this.cityBars = const [],
     this.isRegisteringBarMode = false,
+    this.isManualRouteMode = false,
     this.highlightedCityBarId,
     this.route,
     this.selectedBarIndex,
     this.onSelectOrigin,
     this.onRegisterBarAtPoint,
+    this.onAddManualStopAtPoint,
     this.onTapCityBar,
+    this.onAddCityBarToRoute,
     this.onEditCityBar,
     this.onCenterMyLocation,
     this.onSelectBar,
+    this.onRemoveBar,
   });
 
   @override
@@ -73,11 +81,14 @@ class _DarkMapViewState extends State<DarkMapView> {
     super.didUpdateWidget(oldWidget);
     if (!_isMapReady) return;
 
-    if (widget.route != null && widget.route != oldWidget.route) {
+    if (widget.route != null &&
+        widget.route != oldWidget.route &&
+        !widget.isManualRouteMode) {
       _fitRouteBounds(widget.route!);
     } else if (widget.selectedBarIndex != null &&
         widget.selectedBarIndex != oldWidget.selectedBarIndex &&
         widget.route != null &&
+        !widget.isManualRouteMode &&
         widget.selectedBarIndex! < widget.route!.bars.length) {
       final selectedBar = widget.route!.bars[widget.selectedBarIndex!];
       _mapController.move(selectedBar.coordinates, 16.2);
@@ -142,8 +153,8 @@ class _DarkMapViewState extends State<DarkMapView> {
       markers.add(
         Marker(
           point: cityBar.coordinates,
-          width: isHighlighted ? 170 : 112,
-          height: isHighlighted ? 82 : 58,
+          width: isHighlighted ? 196 : 112,
+          height: isHighlighted ? 84 : 58,
           child: GestureDetector(
             onTap: () => widget.onTapCityBar?.call(cityBar),
             onLongPress: () => widget.onEditCityBar?.call(cityBar),
@@ -151,53 +162,78 @@ class _DarkMapViewState extends State<DarkMapView> {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                GestureDetector(
-                  onTap: isHighlighted
-                      ? () => widget.onEditCityBar?.call(cityBar)
-                      : () => widget.onTapCityBar?.call(cityBar),
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 3),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isHighlighted ? 9 : 7,
-                      vertical: isHighlighted ? 3.5 : 2,
+                Container(
+                  margin: const EdgeInsets.only(bottom: 3),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isHighlighted ? 8 : 7,
+                    vertical: isHighlighted ? 3.5 : 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xF00B0B0E),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isHighlighted
+                          ? AppColors.cyberGreen
+                          : (widget.isManualRouteMode
+                              ? AppColors.neonCyan
+                              : AppColors.neonOrange.withValues(alpha: 0.75)),
+                      width: isHighlighted ? 1.4 : 1.0,
                     ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xF00B0B0E),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isHighlighted
-                            ? AppColors.cyberGreen
-                            : AppColors.neonOrange.withValues(alpha: 0.75),
-                        width: isHighlighted ? 1.4 : 1.0,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          cityBar.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isHighlighted
+                                ? AppColors.cyberGreen
+                                : Colors.white,
+                            fontSize: isHighlighted ? 10.0 : 9.0,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            cityBar.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: isHighlighted
-                                  ? AppColors.cyberGreen
-                                  : Colors.white,
-                              fontSize: isHighlighted ? 10.5 : 9.0,
-                              fontWeight: FontWeight.w800,
+                      if (isHighlighted && widget.onAddCityBarToRoute != null) ...[
+                        const SizedBox(width: 5),
+                        GestureDetector(
+                          onTap: () =>
+                              widget.onAddCityBarToRoute?.call(cityBar),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.cyberGreen,
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: const Text(
+                              '+ ROTA',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                           ),
                         ),
-                        if (isHighlighted) ...[
-                          const SizedBox(width: 4),
-                          const Icon(
+                      ],
+                      if (isHighlighted) ...[
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => widget.onEditCityBar?.call(cityBar),
+                          child: const Icon(
                             Icons.edit_outlined,
                             size: 11,
                             color: AppColors.cyberGreen,
                           ),
-                        ],
+                        ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
                 AnimatedContainer(
@@ -380,8 +416,8 @@ class _DarkMapViewState extends State<DarkMapView> {
         markers.add(
           Marker(
             point: bar.coordinates,
-            width: isSelected ? 140 : 42,
-            height: isSelected ? 74 : 42,
+            width: isSelected ? 168 : 42,
+            height: isSelected ? 78 : 42,
             child: GestureDetector(
               onTap: () => widget.onSelectBar?.call(i),
               child: Column(
@@ -403,15 +439,33 @@ class _DarkMapViewState extends State<DarkMapView> {
                           width: 1.2,
                         ),
                       ),
-                      child: Text(
-                        bar.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.neonCyan,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              bar.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.neonCyan,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          if (widget.onRemoveBar != null) ...[
+                            const SizedBox(width: 5),
+                            GestureDetector(
+                              onTap: () => widget.onRemoveBar?.call(i),
+                              child: const Icon(
+                                Icons.close_rounded,
+                                size: 13,
+                                color: AppColors.alertRed,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   AnimatedContainer(
@@ -456,7 +510,7 @@ class _DarkMapViewState extends State<DarkMapView> {
         (widget.gpsAccuracyMeters ?? 28.0).clamp(16.0, 220.0);
 
     return MouseRegion(
-      cursor: widget.isRegisteringBarMode
+      cursor: (widget.isRegisteringBarMode || widget.isManualRouteMode)
           ? SystemMouseCursors.precise
           : MouseCursor.defer,
       child: Stack(
@@ -472,6 +526,10 @@ class _DarkMapViewState extends State<DarkMapView> {
               onTap: (tapPosition, point) {
                 if (widget.isRegisteringBarMode) {
                   widget.onRegisterBarAtPoint?.call(point);
+                  return;
+                }
+                if (widget.isManualRouteMode) {
+                  widget.onAddManualStopAtPoint?.call(point);
                   return;
                 }
                 if (widget.route == null) {

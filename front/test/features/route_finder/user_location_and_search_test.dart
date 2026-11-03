@@ -284,6 +284,33 @@ void main() {
       expect(notifier.state.route, isNotNull);
       expect(notifier.state.route!.bars, hasLength(3));
       expect(notifier.state.route!.bars.first.name, 'Boteco São Leonardo');
+
+      // Testa montagem manual de rota clicando nas paradas no mapa
+      notifier.resetRoute();
+      notifier.toggleManualRouteMode(enabled: true, clearExistingRoute: true);
+      expect(notifier.state.isManualRouteMode, isTrue);
+      expect(notifier.state.route, isNull);
+
+      // 1º clique próximo (<= 40m) ao "Boteco São Leonardo" -> faz snap para o bar cadastrado
+      await notifier.addManualStopAtPoint(const LatLng(-5.0820, -42.7510));
+      expect(notifier.state.route, isNotNull);
+      expect(notifier.state.route!.bars, hasLength(1));
+      expect(notifier.state.route!.bars.first.name, 'Boteco São Leonardo');
+
+      // 2º clique em uma rua qualquer livre no mapa -> cria parada manual customizada
+      await notifier.addManualStopAtPoint(const LatLng(-5.0780, -42.7600));
+      expect(notifier.state.route!.bars, hasLength(2));
+      expect(notifier.state.route!.bars[1].order, 2);
+
+      // Desfaz a última parada manual
+      await notifier.undoLastManualStop();
+      expect(notifier.state.route!.bars, hasLength(1));
+
+      // Registra e salva a rota no armazenamento local
+      expect(notifier.state.isRouteRegistered, isFalse);
+      final savedOk = await notifier.registerCurrentRoute();
+      expect(savedOk, isTrue);
+      expect(notifier.state.isRouteRegistered, isTrue);
     });
   });
 }

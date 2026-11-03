@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../core/location/user_location_service.dart';
+import '../../../../core/storage/local_storage_service.dart';
 import '../../../../core/utils/haversine_calculator.dart';
 import '../../data/datasources/city_bars_datasource.dart';
 import '../../data/datasources/nominatim_datasource.dart';
@@ -9,6 +11,7 @@ import '../../data/datasources/osrm_datasource.dart';
 import '../../data/datasources/place_search_datasource.dart';
 import '../../data/repositories/route_finder_repository_impl.dart';
 import '../../domain/entities/bar.dart';
+import '../../domain/entities/drunk_route.dart';
 import '../../domain/entities/place_suggestion.dart';
 import '../../domain/repositories/route_finder_repository.dart';
 import '../../domain/services/bar_swap_service.dart';
@@ -24,31 +27,87 @@ class RouteFinderNotifier extends StateNotifier<RouteFinderState> {
   final RouteGeneratorService _routeGeneratorService;
   final BarSwapService _barSwapService;
   final UserLocationService _userLocationService;
+  final LocalStorageService _localStorageService;
   StreamSubscription<UserLocationResult>? _liveLocationSubscription;
+  int _manualRouteRebuildVersion = 0;
 
   RouteFinderNotifier({
     RouteFinderRepository? repository,
     RouteGeneratorService? routeGeneratorService,
     BarSwapService? barSwapService,
     UserLocationService? userLocationService,
+    LocalStorageService? localStorageService,
   })  : _repository = repository ?? RouteFinderRepositoryImpl(),
         _routeGeneratorService =
             routeGeneratorService ?? RouteGeneratorService(),
         _barSwapService = barSwapService ?? BarSwapService(),
         _userLocationService = userLocationService ?? UserLocationService(),
+        _localStorageService = localStorageService ?? LocalStorageService(),
         super(const RouteFinderState()) {
     _loadCityBars();
+    _restoreSavedRoute();
     initLocation();
   }
 
   /// Ponto padrão apenas em caso extremo 100% offline sem GPS nem rede IP
   static const LatLng defaultOrigin = UserLocationService.defaultCoordinates;
 
+  /// Restaura a última rota registrada e salva localmente no dispositivo
+  Future<void> _restoreSavedRoute() async {
+    final savedRoute = await _localStorageService.loadRegisteredRoute();
+    if (!mounted || savedRoute == null || savedRoute.bars.isEmpty) return;
+    final savedLabel =
+        await _localStorageService.loadRegisteredRouteOriginLabel();
+    if (!mounted) return;
+
+    state = state.copyWith(
+      route: savedRoute.copyWith(
+        candidatePool: state.cityBars.isNotEmpty
+            ? state.cityBars
+            : savedRoute.candidatePool,
+      ),
+      origin: savedRoute.origin,
+      locationAddress: savedLabel ?? state.locationAddress,
+      targetDistanceKm: savedRoute.targetDistanceKm.clamp(1.0, 20.0),
+      targetBarsCount: savedRoute.totalBars,
+      isRouteRegistered: true,
+    );
+  }
+
+  /// Registra e salva a rota atual no armazenamento local para os corredores seguirem
+  Future<bool> registerCurrentRoute() async {
+    final currentRoute = state.route;
+    if (currentRoute == null || currentRoute.bars.isEmpty) {
+      return false;
+    }
+
+    await _localStorageService.saveRegisteredRoute(
+      currentRoute,
+      originLabel: state.locationAddress,
+    );
+    if (!mounted) return false;
+
+    state = state.copyWith(
+      isRouteRegistered: true,
+      isManualRouteMode: false,
+      isRegisteringBarMode: false,
+      clearSelectedBar: true,
+      clearError: true,
+    );
+    return true;
+  }
+
   /// Carrega os bares oficiais cadastrados na cidade para exibi-los no mapa
   Future<void> _loadCityBars() async {
     final bars = await _repository.getAllCityBars();
     if (!mounted) return;
-    state = state.copyWith(cityBars: bars);
+    final maxAvailable = bars.isNotEmpty ? bars.length : 10;
+    final adjustedBarsCount =
+        state.targetBarsCount.clamp(1, math.max<int>(2, maxAvailable));
+    state = state.copyWith(
+      cityBars: bars,
+      targetBarsCount: adjustedBarsCount,
+    );
   }
 
   /// Ativa ou desativa o Modo Cadastrar Bar clicando direto no mapa
@@ -56,16 +115,240 @@ class RouteFinderNotifier extends StateNotifier<RouteFinderState> {
     final next = enabled ?? !state.isRegisteringBarMode;
     state = state.copyWith(
       isRegisteringBarMode: next,
+      isManualRouteMode: next ? false : state.isManualRouteMode,
       clearError: true,
     );
   }
 
-  /// Destaca um bar cadastrado no mapa ao tocar no pino dele
-  void selectCityBarOnMap(String? barId) {
-    if (barId == null || state.highlightedCityBarId == barId) {
+  /// Ativa ou desativa o Modo de Montar Rota Manualmente clicando nas paradas no mapa
+  void toggleManualRouteMode({
+    bool? enabled,
+    bool clearExistingRoute = false,
+  }) {
+    final next = enabled ?? !state.isManualRouteMode;
+    state = state.copyWith(
+      isManualRouteMode: next,
+      isRegisteringBarMode: next ? false : state.isRegisteringBarMode,
+      clearRoute: clearExistingRoute,
+      clearSelectedBar: clearExistingRoute,
+      clearError: true,
+    );
+  }
+
+  /// Destaca um bar cadastrado no mapa ao tocar no pino dele (ou adiciona à rota se em Modo Manual)
+  Future<void> selectCityBarOnMap(String? barId) async {
+    if (barId == null) {
+      state = state.copyWith(clearHighlightedCityBar: true);
+      return;
+    }
+
+    if (state.isManualRouteMode) {
+      Bar? matched;
+      for (final b in state.cityBars) {
+        if (b.id == barId) {
+          matched = b;
+          break;
+        }
+      }
+      if (matched != null) {
+        await toggleBarInManualRoute(matched);
+        return;
+      }
+    }
+
+    if (state.highlightedCityBarId == barId) {
       state = state.copyWith(clearHighlightedCityBar: true);
     } else {
       state = state.copyWith(highlightedCityBarId: barId);
+    }
+  }
+
+  /// Adiciona ou remove um bar oficial do banco da cidade na rota manual
+  Future<void> toggleBarInManualRoute(Bar bar) async {
+    final currentBars = List<Bar>.from(state.route?.bars ?? const []);
+    final existingIdx = currentBars.indexWhere((b) => b.id == bar.id);
+
+    if (existingIdx >= 0) {
+      currentBars.removeAt(existingIdx);
+    } else {
+      currentBars.add(bar);
+    }
+
+    state = state.copyWith(
+      isManualRouteMode: true,
+      isRegisteringBarMode: false,
+      clearHighlightedCityBar: true,
+      clearError: true,
+    );
+
+    await _rebuildRouteFromOrderedBars(currentBars);
+  }
+
+  /// Chamado quando o usuário está no Modo Manual e clica em qualquer ponto do mapa:
+  /// - Se clicar próximo (<= 40m) de um bar oficial cadastrado, seleciona esse bar.
+  /// - Se clicar em qualquer outra rua/esquina, cria uma parada manual naquele ponto e traça a rota!
+  Future<void> addManualStopAtPoint(LatLng point) async {
+    // 1. Verifica se clicou em cima/perto de algum bar já presente na rota (para selecioná-lo)
+    final currentBars = List<Bar>.from(state.route?.bars ?? const []);
+
+    // 2. Verifica se clicou próximo (<= 40m) de um bar cadastrado no Banco da Cidade
+    Bar? nearestCityBar;
+    double nearestDist = double.infinity;
+    for (final cityBar in state.cityBars) {
+      final d = HaversineCalculator.distanceMeters(cityBar.coordinates, point);
+      if (d <= 40.0 && d < nearestDist) {
+        nearestDist = d;
+        nearestCityBar = cityBar;
+      }
+    }
+
+    if (nearestCityBar != null) {
+      await toggleBarInManualRoute(nearestCityBar);
+      return;
+    }
+
+    // 3. Cria uma parada personalizada exatamente na coordenada clicada
+    final stopOrder = currentBars.length + 1;
+    final customStopId =
+        'manual_stop_${DateTime.now().microsecondsSinceEpoch}_${++_barIdSequence}';
+    final provisionalBar = Bar(
+      id: customStopId,
+      name: 'Parada #${stopOrder.toString().padLeft(2, '0')}',
+      latitude: point.latitude,
+      longitude: point.longitude,
+      address: 'Calculando rua...',
+      amenity: 'bar',
+      order: stopOrder,
+    );
+
+    currentBars.add(provisionalBar);
+    await _rebuildRouteFromOrderedBars(currentBars);
+
+    // Resolve o nome da rua em background para enriquecer o card da parada manual
+    final resolvedStreet = await _repository.resolveAddress(point);
+    if (!mounted) return;
+    final activeBars = state.route?.bars;
+    if (activeBars == null) return;
+    final idx = activeBars.indexWhere((b) => b.id == customStopId);
+    if (idx < 0) return;
+
+    final shortStreet = resolvedStreet.split('•').first.trim();
+    final updatedBar = activeBars[idx].copyWith(
+      name: shortStreet.isNotEmpty && !shortStreet.contains(',')
+          ? 'Parada #${(idx + 1).toString().padLeft(2, '0')} • $shortStreet'
+          : activeBars[idx].name,
+      address: resolvedStreet,
+    );
+    final updatedList = List<Bar>.from(activeBars)..[idx] = updatedBar;
+    state = state.copyWith(
+      route: state.route!.copyWith(bars: updatedList),
+    );
+  }
+
+  /// Remove uma parada específica pelo índice (0-based) e recalcula a rota
+  Future<void> removeStopFromRoute(int index) async {
+    final currentBars = List<Bar>.from(state.route?.bars ?? const []);
+    if (index < 0 || index >= currentBars.length) return;
+    currentBars.removeAt(index);
+    state = state.copyWith(clearSelectedBar: true, clearError: true);
+    await _rebuildRouteFromOrderedBars(currentBars);
+  }
+
+  /// Desfaz a última parada adicionada na rota manual
+  Future<void> undoLastManualStop() async {
+    final currentBars = List<Bar>.from(state.route?.bars ?? const []);
+    if (currentBars.isEmpty) return;
+    currentBars.removeLast();
+    state = state.copyWith(clearSelectedBar: true, clearError: true);
+    await _rebuildRouteFromOrderedBars(currentBars);
+  }
+
+  /// Reconstrói o objeto [DrunkRoute] instantaneamente e atualiza a geometria real nas ruas via OSRM
+  Future<void> _rebuildRouteFromOrderedBars(List<Bar> orderedBars) async {
+    final rebuildId = ++_manualRouteRebuildVersion;
+    if (orderedBars.isEmpty) {
+      state = state.copyWith(
+        clearRoute: true,
+        clearSelectedBar: true,
+      );
+      return;
+    }
+
+    final origin = state.origin ?? state.userLocation ?? defaultOrigin;
+
+    // 1. Atualização instantânea (< 16ms) com linha estimada para feedback visual imediato ao clicar no mapa
+    double instantTotalMeters = 0.0;
+    final instantBars = <Bar>[];
+    final instantPolyline = <LatLng>[origin];
+    LatLng prev = origin;
+
+    for (int i = 0; i < orderedBars.length; i++) {
+      final legMeters =
+          HaversineCalculator.distanceMeters(prev, orderedBars[i].coordinates) *
+              RouteGeneratorService.urbanTortuosityFactor;
+      instantTotalMeters += legMeters;
+      instantBars.add(
+        orderedBars[i].copyWith(
+          order: i + 1,
+          distanceFromPrevious: legMeters,
+        ),
+      );
+      instantPolyline.add(orderedBars[i].coordinates);
+      prev = orderedBars[i].coordinates;
+    }
+
+    final instantRoute = DrunkRoute(
+      origin: origin,
+      bars: instantBars,
+      totalDistanceMeters: instantTotalMeters,
+      totalDurationSeconds: instantTotalMeters / 1.39,
+      targetDistanceMeters: instantTotalMeters,
+      targetBarsCount: instantBars.length,
+      polyline: instantPolyline,
+      candidatePool: state.cityBars,
+    );
+
+    state = state.copyWith(
+      route: instantRoute,
+      targetBarsCount: instantBars.length,
+      selectedBarIndex: instantBars.length - 1,
+      isRouteRegistered: false,
+    );
+
+    // 2. Cálculo assíncrono do traçado real pelas calçadas/ruas via OSRM
+    try {
+      final waypoints = [origin, ...instantBars.map((b) => b.coordinates)];
+      final osrm = await _repository.calculateFootRoute(waypoints);
+      if (!mounted || rebuildId != _manualRouteRebuildVersion) return;
+
+      final currentRouteBars = state.route?.bars ?? instantBars;
+      final refinedBars = <Bar>[];
+      for (int i = 0; i < currentRouteBars.length; i++) {
+        final legDist = (i < osrm.legDistances.length)
+            ? osrm.legDistances[i]
+            : currentRouteBars[i].distanceFromPrevious;
+        refinedBars.add(
+          currentRouteBars[i].copyWith(
+            order: i + 1,
+            distanceFromPrevious: legDist,
+          ),
+        );
+      }
+
+      state = state.copyWith(
+        route: DrunkRoute(
+          origin: origin,
+          bars: refinedBars,
+          totalDistanceMeters: osrm.distanceMeters,
+          totalDurationSeconds: osrm.durationSeconds,
+          targetDistanceMeters: osrm.distanceMeters,
+          targetBarsCount: refinedBars.length,
+          polyline: osrm.polyline,
+          candidatePool: state.cityBars,
+        ),
+      );
+    } catch (_) {
+      // Mantém a rota instantânea caso o servidor OSRM esteja offline
     }
   }
 
@@ -129,8 +412,10 @@ class RouteFinderNotifier extends StateNotifier<RouteFinderState> {
     if (!mounted) return;
     final wasInRoute =
         state.route?.bars.any((b) => b.id == barId) ?? false;
+    final maxBars = updatedList.isNotEmpty ? updatedList.length : 2;
     state = state.copyWith(
       cityBars: updatedList,
+      targetBarsCount: state.targetBarsCount.clamp(1, maxBars),
       clearHighlightedCityBar: state.highlightedCityBarId == barId,
       clearRoute: wasInRoute,
     );
@@ -171,7 +456,8 @@ class RouteFinderNotifier extends StateNotifier<RouteFinderState> {
 
     final targetZoom =
         result.source == LocationSource.gpsHardware ? 15.6 : 14.3;
-    final shouldMoveOrigin = snapOriginToUser || state.origin == null;
+    final shouldMoveOrigin =
+        (snapOriginToUser && !state.hasRoute) || state.origin == null;
     final provisionalLabel = result.suggestedLabel ?? 'Identificando rua...';
 
     state = state.copyWith(
@@ -307,12 +593,15 @@ class RouteFinderNotifier extends StateNotifier<RouteFinderState> {
   }
 
   /// Limpa a rota atual para configurar uma nova busca mantendo o ponto de partida
-  void resetRoute() {
+  Future<void> resetRoute() async {
+    ++_manualRouteRebuildVersion;
     state = state.copyWith(
       clearRoute: true,
+      isRouteRegistered: false,
       clearSelectedBar: true,
       clearError: true,
     );
+    await _localStorageService.clearRegisteredRoute();
   }
 
   /// Seleciona/destaca um bar na lista e no mapa
@@ -324,14 +613,34 @@ class RouteFinderNotifier extends StateNotifier<RouteFinderState> {
     }
   }
 
-  /// Ajusta o raio de busca
+  /// Define a distância total desejada para o percurso (em KM)
+  void setTargetDistanceKm(double km) {
+    final clamped = (km * 2).round() / 2.0; // passos de 0.5 km
+    final finalKm = clamped.clamp(1.0, 20.0);
+    final syncedRadarRadius = (finalKm * 0.45).clamp(1.5, 6.0);
+    state = state.copyWith(
+      targetDistanceKm: finalKm,
+      searchRadiusKm: syncedRadarRadius,
+    );
+  }
+
+  /// Define quantos bares o usuário deseja percorrer na rota
+  void setTargetBarsCount(int count) {
+    final maxBars = state.cityBars.isNotEmpty
+        ? math.min<int>(20, state.cityBars.length)
+        : 20;
+    final clamped = count.clamp(1, math.max<int>(1, maxBars));
+    state = state.copyWith(targetBarsCount: clamped);
+  }
+
+  /// Ajusta o raio do radar diretamente (compatibilidade)
   void setSearchRadius(double radiusKm) {
     state = state.copyWith(searchRadiusKm: radiusKm);
   }
 
   /// Executa o fluxo completo usando 100% o Banco de Dados Próprio da Cidade:
   /// 1. Busca os bares oficiais cadastrados na cidade
-  /// 2. Seleciona até 10 bares na sequência ideal (~10km)
+  /// 2. Seleciona [targetBarsCount] bares na sequência ideal (~[targetDistanceKm] km)
   /// 3. Traça as ruas reais a pé via OSRM
   Future<void> generateDrunkRoute() async {
     final origin = state.origin ?? state.userLocation ?? defaultOrigin;
@@ -339,6 +648,7 @@ class RouteFinderNotifier extends StateNotifier<RouteFinderState> {
     state = state.copyWith(
       isGenerating: true,
       isRegisteringBarMode: false,
+      isManualRouteMode: false,
       clearError: true,
       clearSelectedBar: true,
     );
@@ -353,7 +663,8 @@ class RouteFinderNotifier extends StateNotifier<RouteFinderState> {
         return;
       }
 
-      final radiusMeters = state.searchRadiusKm * 1000.0;
+      final radiusMeters =
+          math.max(state.searchRadiusKm, state.targetDistanceKm * 0.6) * 1000.0;
       final candidates = await _repository.getNearbyBars(
         center: origin,
         radiusMeters: radiusMeters,
@@ -368,14 +679,19 @@ class RouteFinderNotifier extends StateNotifier<RouteFinderState> {
         return;
       }
 
+      final requestedBars =
+          state.targetBarsCount.clamp(1, candidates.length);
+
       final drunkRoute = await _routeGeneratorService.generateRoute(
         origin: origin,
         candidatePool: candidates,
-        targetBars: 10,
+        targetBars: requestedBars,
+        targetDistanceKm: state.targetDistanceKm,
       );
 
       state = state.copyWith(
         isGenerating: false,
+        isRouteRegistered: false,
         route: drunkRoute,
       );
     } catch (e) {
@@ -407,6 +723,7 @@ class RouteFinderNotifier extends StateNotifier<RouteFinderState> {
       state = state.copyWith(
         clearSwappingIndex: true,
         selectedBarIndex: index,
+        isRouteRegistered: false,
         route: updatedRoute,
       );
     } catch (e) {

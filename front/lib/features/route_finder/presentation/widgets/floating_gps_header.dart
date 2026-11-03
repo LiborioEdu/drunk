@@ -3,7 +3,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../controllers/route_finder_state.dart';
 
-/// Cabeçalho HUD flutuante com GPS Real + Atalhos de Cadastro/Gerenciamento do Banco de Bares da Cidade
+/// Cabeçalho HUD flutuante com GPS Real + Meta Dinâmica (KM/Bares) + Banco de Bares da Cidade
 class FloatingGpsHeader extends StatelessWidget {
   final GpsStatus gpsStatus;
   final double? gpsAccuracyMeters;
@@ -11,10 +11,16 @@ class FloatingGpsHeader extends StatelessWidget {
   final String locationAddress;
   final bool isLoading;
   final int cityBarsCount;
+  final double targetDistanceKm;
+  final int targetBarsCount;
   final bool isRegisteringBarMode;
+  final bool isManualRouteMode;
+  final int manualStopsCount;
   final VoidCallback? onRefresh;
   final VoidCallback? onEditLocation;
   final VoidCallback? onToggleRegisterBarMode;
+  final VoidCallback? onToggleManualRouteMode;
+  final VoidCallback? onUndoManualStop;
   final VoidCallback? onOpenCityBarsManager;
 
   const FloatingGpsHeader({
@@ -25,10 +31,16 @@ class FloatingGpsHeader extends StatelessWidget {
     this.isFollowingUser = true,
     this.isLoading = false,
     this.cityBarsCount = 0,
+    this.targetDistanceKm = 10.0,
+    this.targetBarsCount = 10,
     this.isRegisteringBarMode = false,
+    this.isManualRouteMode = false,
+    this.manualStopsCount = 0,
     this.onRefresh,
     this.onEditLocation,
     this.onToggleRegisterBarMode,
+    this.onToggleManualRouteMode,
+    this.onUndoManualStop,
     this.onOpenCityBarsManager,
   });
 
@@ -72,46 +84,71 @@ class FloatingGpsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor();
+    final kmFormatted = targetDistanceKm.truncateToDouble() == targetDistanceKm
+        ? targetDistanceKm.toStringAsFixed(0)
+        : targetDistanceKm.toStringAsFixed(1);
 
     return SafeArea(
       bottom: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+        padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             GlassCard(
-              borderRadius: 24,
+              borderRadius: 22,
               backgroundColor: const Color(0xEB141419),
               borderColor: const Color(0x22FFFFFF),
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Linha 1: DRUNK // 10K + Status GPS + Minha Localização
+                  // Linha 1: DRUNK // XK • N BARES + Status GPS + Minha Localização
                   Row(
                     children: [
                       const Icon(
                         Icons.near_me_outlined,
                         color: AppColors.neonOrange,
-                        size: 21,
+                        size: 19,
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'DRUNK // 10K',
-                        style: TextStyle(
+                      const SizedBox(width: 6),
+                      Text(
+                        'DRUNK // ${kmFormatted}K',
+                        style: const TextStyle(
                           color: AppColors.neonOrange,
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2.5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.cyberGreen.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.cyberGreen.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Text(
+                          '$targetBarsCount BARES',
+                          style: const TextStyle(
+                            color: AppColors.cyberGreen,
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                       const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
+                          horizontal: 9,
+                          vertical: 4.5,
                         ),
                         decoration: BoxDecoration(
                           color: statusColor.withValues(alpha: 0.12),
@@ -124,8 +161,8 @@ class FloatingGpsHeader extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 7,
-                              height: 7,
+                              width: 6.5,
+                              height: 6.5,
                               decoration: BoxDecoration(
                                 color: statusColor,
                                 shape: BoxShape.circle,
@@ -137,20 +174,20 @@ class FloatingGpsHeader extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 5),
                             Text(
                               _getStatusText(),
                               style: TextStyle(
                                 color: statusColor,
-                                fontSize: 10,
+                                fontSize: 9.5,
                                 fontWeight: FontWeight.w900,
-                                letterSpacing: 0.6,
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 7),
                       Tooltip(
                         message: 'Centralizar na Minha Localização',
                         child: Material(
@@ -162,13 +199,13 @@ class FloatingGpsHeader extends StatelessWidget {
                             customBorder: const CircleBorder(),
                             onTap: isLoading ? null : onRefresh,
                             child: SizedBox(
-                              width: 36,
-                              height: 36,
+                              width: 34,
+                              height: 34,
                               child: Center(
                                 child: isLoading
                                     ? const SizedBox(
-                                        width: 15,
-                                        height: 15,
+                                        width: 14,
+                                        height: 14,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                           valueColor:
@@ -180,7 +217,7 @@ class FloatingGpsHeader extends StatelessWidget {
                                     : const Icon(
                                         Icons.my_location_rounded,
                                         color: AppColors.neonCyan,
-                                        size: 18,
+                                        size: 17,
                                       ),
                               ),
                             ),
@@ -189,35 +226,35 @@ class FloatingGpsHeader extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 9),
 
                   // Linha 2: Box clicável SUA LOCALIZAÇÃO / PONTO DE PARTIDA + EDITAR
                   Material(
                     color: const Color(0xFF0B0B0E),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                       onTap: onEditLocation ?? onRefresh,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
+                          horizontal: 11,
+                          vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: const Color(0x1CFFFFFF)),
                         ),
                         child: Row(
                           children: [
                             Container(
-                              width: 34,
-                              height: 34,
+                              width: 30,
+                              height: 30,
                               decoration: BoxDecoration(
                                 color: (isFollowingUser
                                         ? AppColors.neonCyan
                                         : AppColors.cyberGreen)
                                     .withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(9),
                               ),
                               child: Icon(
                                 isFollowingUser
@@ -226,10 +263,10 @@ class FloatingGpsHeader extends StatelessWidget {
                                 color: isFollowingUser
                                     ? AppColors.neonCyan
                                     : AppColors.cyberGreen,
-                                size: 19,
+                                size: 17,
                               ),
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 9),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,19 +277,19 @@ class FloatingGpsHeader extends StatelessWidget {
                                         : 'PONTO DE PARTIDA',
                                     style: const TextStyle(
                                       color: AppColors.textSecondary,
-                                      fontSize: 9,
+                                      fontSize: 8.5,
                                       fontWeight: FontWeight.w800,
-                                      letterSpacing: 1.1,
+                                      letterSpacing: 1.0,
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
+                                  const SizedBox(height: 1.5),
                                   Text(
                                     locationAddress,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       color: Colors.white,
-                                      fontSize: 13.5,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
@@ -262,13 +299,13 @@ class FloatingGpsHeader extends StatelessWidget {
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 11,
-                                vertical: 7,
+                                horizontal: 10,
+                                vertical: 6,
                               ),
                               decoration: BoxDecoration(
                                 color:
                                     AppColors.neonOrange.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(9),
                                 border: Border.all(
                                   color: AppColors.neonOrange
                                       .withValues(alpha: 0.55),
@@ -280,16 +317,16 @@ class FloatingGpsHeader extends StatelessWidget {
                                   Icon(
                                     Icons.search_rounded,
                                     color: AppColors.neonOrange,
-                                    size: 13,
+                                    size: 12,
                                   ),
                                   SizedBox(width: 4),
                                   Text(
                                     'EDITAR',
                                     style: TextStyle(
                                       color: AppColors.neonOrange,
-                                      fontSize: 10,
+                                      fontSize: 9.5,
                                       fontWeight: FontWeight.w900,
-                                      letterSpacing: 0.8,
+                                      letterSpacing: 0.7,
                                     ),
                                   ),
                                 ],
@@ -301,13 +338,66 @@ class FloatingGpsHeader extends StatelessWidget {
                     ),
                   ),
 
-                  // Linha 3: Ações Rápidas da Cidade (+ Cadastrar Bar, Banco de Bares, Minha Localização, Buscar)
-                  const SizedBox(height: 11),
+                  // Linha 3: Ações Rápidas da Cidade (Montar no Mapa, + Cadastrar Bar, Banco de Bares, Minha Localização)
+                  const SizedBox(height: 9),
                   SizedBox(
-                    height: 34,
+                    height: 31,
                     child: ListView(
                       scrollDirection: Axis.horizontal,
                       children: [
+                        // 0. Modo Montar Rota Manualmente Clicando no Mapa
+                        if (onToggleManualRouteMode != null) ...[
+                          GestureDetector(
+                            onTap: onToggleManualRouteMode,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isManualRouteMode
+                                    ? AppColors.neonCyan
+                                    : AppColors.neonCyan
+                                        .withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: AppColors.neonCyan,
+                                  width: 1.3,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isManualRouteMode
+                                        ? Icons.ads_click_rounded
+                                        : Icons.touch_app_rounded,
+                                    size: 13,
+                                    color: isManualRouteMode
+                                        ? Colors.black
+                                        : AppColors.neonCyan,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    isManualRouteMode
+                                        ? 'Montando no Mapa ($manualStopsCount)'
+                                        : 'Montar no Mapa',
+                                    style: TextStyle(
+                                      color: isManualRouteMode
+                                          ? Colors.black
+                                          : AppColors.neonCyan,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                        ],
+
                         // 1. Modo Cadastrar Bar Clicando no Mapa
                         if (onToggleRegisterBarMode != null) ...[
                           GestureDetector(
@@ -315,18 +405,18 @@ class FloatingGpsHeader extends StatelessWidget {
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 180),
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 7,
+                                horizontal: 12,
+                                vertical: 6,
                               ),
                               decoration: BoxDecoration(
                                 color: isRegisteringBarMode
                                     ? AppColors.neonOrange
                                     : AppColors.neonOrange
                                         .withValues(alpha: 0.14),
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
                                   color: AppColors.neonOrange,
-                                  width: 1.4,
+                                  width: 1.3,
                                 ),
                               ),
                               child: Row(
@@ -336,7 +426,7 @@ class FloatingGpsHeader extends StatelessWidget {
                                     isRegisteringBarMode
                                         ? Icons.touch_app_rounded
                                         : Icons.add_location_alt_rounded,
-                                    size: 14,
+                                    size: 13,
                                     color: isRegisteringBarMode
                                         ? Colors.black
                                         : AppColors.neonOrange,
@@ -350,7 +440,7 @@ class FloatingGpsHeader extends StatelessWidget {
                                       color: isRegisteringBarMode
                                           ? Colors.black
                                           : AppColors.neonOrange,
-                                      fontSize: 12,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w900,
                                     ),
                                   ),
@@ -358,7 +448,7 @@ class FloatingGpsHeader extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 7),
                         ],
 
                         // 2. Painel do Banco de Bares da Cidade
@@ -367,13 +457,13 @@ class FloatingGpsHeader extends StatelessWidget {
                             onTap: onOpenCityBarsManager,
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 7,
+                                horizontal: 12,
+                                vertical: 6,
                               ),
                               decoration: BoxDecoration(
                                 color:
                                     AppColors.cyberGreen.withValues(alpha: 0.14),
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
                                   color: AppColors.cyberGreen
                                       .withValues(alpha: 0.65),
@@ -384,7 +474,7 @@ class FloatingGpsHeader extends StatelessWidget {
                                 children: [
                                   const Icon(
                                     Icons.sports_bar_rounded,
-                                    size: 14,
+                                    size: 13,
                                     color: AppColors.cyberGreen,
                                   ),
                                   const SizedBox(width: 5),
@@ -392,7 +482,7 @@ class FloatingGpsHeader extends StatelessWidget {
                                     'Banco de Bares ($cityBarsCount)',
                                     style: const TextStyle(
                                       color: AppColors.cyberGreen,
-                                      fontSize: 12,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w900,
                                     ),
                                   ),
@@ -400,7 +490,7 @@ class FloatingGpsHeader extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 7),
                         ],
 
                         // 3. Minha Localização Real
@@ -409,19 +499,19 @@ class FloatingGpsHeader extends StatelessWidget {
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 180),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 7,
+                              horizontal: 12,
+                              vertical: 6,
                             ),
                             decoration: BoxDecoration(
                               color: isFollowingUser
                                   ? AppColors.neonCyan.withValues(alpha: 0.18)
                                   : const Color(0xFF0E0E13),
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(18),
                               border: Border.all(
                                 color: isFollowingUser
                                     ? AppColors.neonCyan
                                     : const Color(0x28FFFFFF),
-                                width: isFollowingUser ? 1.4 : 1.0,
+                                width: isFollowingUser ? 1.3 : 1.0,
                               ),
                             ),
                             child: Row(
@@ -429,19 +519,19 @@ class FloatingGpsHeader extends StatelessWidget {
                               children: [
                                 Icon(
                                   Icons.my_location_rounded,
-                                  size: 13,
+                                  size: 12,
                                   color: isFollowingUser
                                       ? AppColors.neonCyan
                                       : const Color(0xFFD2D2DC),
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: 5),
                                 Text(
                                   'Minha Localização',
                                   style: TextStyle(
                                     color: isFollowingUser
                                         ? AppColors.neonCyan
                                         : const Color(0xFFD2D2DC),
-                                    fontSize: 12,
+                                    fontSize: 11,
                                     fontWeight: isFollowingUser
                                         ? FontWeight.w900
                                         : FontWeight.w700,
@@ -454,17 +544,17 @@ class FloatingGpsHeader extends StatelessWidget {
 
                         // 4. Buscar Rua / Bairro
                         if (onEditLocation != null) ...[
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 7),
                           GestureDetector(
                             onTap: onEditLocation,
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 7,
+                                horizontal: 12,
+                                vertical: 6,
                               ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF0E0E13),
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(18),
                                 border:
                                     Border.all(color: const Color(0x28FFFFFF)),
                               ),
@@ -473,7 +563,7 @@ class FloatingGpsHeader extends StatelessWidget {
                                 children: [
                                   Icon(
                                     Icons.search_rounded,
-                                    size: 13,
+                                    size: 12,
                                     color: AppColors.neonCyan,
                                   ),
                                   SizedBox(width: 5),
@@ -481,7 +571,7 @@ class FloatingGpsHeader extends StatelessWidget {
                                     'Buscar Rua / Bairro',
                                     style: TextStyle(
                                       color: Color(0xFFD2D2DC),
-                                      fontSize: 12,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -496,6 +586,93 @@ class FloatingGpsHeader extends StatelessWidget {
                 ],
               ),
             ),
+
+            // Banner flutuante quando o Modo Montar Rota Manualmente está ativo
+            if (isManualRouteMode && !isRegisteringBarMode)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xF50B161B),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.neonCyan,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.touch_app_rounded,
+                        color: AppColors.neonCyan,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          manualStopsCount == 0
+                              ? 'MODO MANUAL: Toque nos bares 🍺 ou em qualquer ponto do mapa para marcar a Parada #01!'
+                              : 'MODO MANUAL ($manualStopsCount paradas): Continue clicando no mapa para adicionar mais paradas!',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      if (manualStopsCount > 0 && onUndoManualStop != null) ...[
+                        const SizedBox(width: 6),
+                        InkWell(
+                          onTap: onUndoManualStop,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1A252B),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppColors.neonCyan.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: const Text(
+                              'DESFAZER ↶',
+                              style: TextStyle(
+                                color: AppColors.neonCyan,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(width: 6),
+                      InkWell(
+                        onTap: onToggleManualRouteMode,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 4,
+                          ),
+                          child: Text(
+                            'PRONTO',
+                            style: TextStyle(
+                              color: AppColors.cyberGreen,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
             // Banner flutuante quando o Modo Cadastrar Bar clicando no mapa está ativo
             if (isRegisteringBarMode)

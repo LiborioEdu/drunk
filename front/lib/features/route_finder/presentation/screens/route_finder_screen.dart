@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/drunk_bottom_nav_bar.dart';
 import '../../../../core/widgets/neon_button.dart';
 import '../../../crew_lobby/presentation/screens/crew_lobby_view.dart';
+import '../../../race_log/presentation/screens/race_log_view.dart';
 import '../../../race_hud/presentation/controllers/race_session_controller.dart';
 import '../../../race_hud/presentation/screens/race_hud_screen.dart';
 import '../../domain/entities/bar.dart';
@@ -15,7 +16,6 @@ import '../widgets/floating_gps_header.dart';
 import '../widgets/location_search_modal.dart';
 import '../widgets/register_city_bar_modal.dart';
 import '../widgets/route_bottom_sheet.dart';
-import '../widgets/route_locked_modal.dart';
 import '../widgets/runner_profile_sheet.dart';
 
 /// Shell Principal DRUNK com Barra Inferior Stitch IA (`ROTA • RADAR • CREW • PERFIL`)
@@ -121,23 +121,40 @@ class _RouteFinderScreenState extends ConsumerState<RouteFinderScreen> {
     );
   }
 
-  Future<void> _lockAndLaunchHud() async {
-    final state = ref.read(routeFinderProvider);
-    final route = state.route;
-    if (route == null) return;
+  Future<void> _registerRoute() async {
+    final notifier = ref.read(routeFinderProvider.notifier);
+    final saved = await notifier.registerCurrentRoute();
+    if (!saved || !mounted) return;
 
-    final decision = await RouteLockedModal.show(context, route);
-    if (decision == null || !mounted) return;
-
-    final roomCode = decision == 'SOLO-START' ? null : decision;
-    await ref.read(raceSessionProvider.notifier).startSession(
-          route: route,
-          roomCode: roomCode,
-          originLabel: state.locationAddress,
-        );
-
-    if (!mounted) return;
-    setState(() => _currentTab = DrunkNavTab.radar);
+    final route = ref.read(routeFinderProvider).route;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          duration: const Duration(milliseconds: 2200),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xF215261D),
+          content: Row(
+            children: [
+              const Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.cyberGreen,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Rota de ${route?.totalDistanceKmFormatted ?? ""} (${route?.totalBars ?? 0} paradas) registrada e salva!',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
   }
 
   @override
@@ -191,6 +208,7 @@ class _RouteFinderScreenState extends ConsumerState<RouteFinderScreen> {
               searchRadiusKm: state.searchRadiusKm,
               cityBars: state.cityBars,
               isRegisteringBarMode: state.isRegisteringBarMode,
+              isManualRouteMode: state.isManualRouteMode,
               highlightedCityBarId: state.highlightedCityBarId,
               route: state.route,
               selectedBarIndex: state.selectedBarIndex,
@@ -200,7 +218,11 @@ class _RouteFinderScreenState extends ConsumerState<RouteFinderScreen> {
               ),
               onRegisterBarAtPoint: (point) =>
                   _openRegisterBarModal(notifier, point: point),
+              onAddManualStopAtPoint: (point) =>
+                  notifier.addManualStopAtPoint(point),
               onTapCityBar: (bar) => notifier.selectCityBarOnMap(bar.id),
+              onAddCityBarToRoute: (bar) =>
+                  notifier.toggleBarInManualRoute(bar),
               onEditCityBar: (bar) => _openRegisterBarModal(
                 notifier,
                 point: bar.coordinates,
@@ -214,103 +236,66 @@ class _RouteFinderScreenState extends ConsumerState<RouteFinderScreen> {
                   notifier.selectBar(barIndex);
                 }
               },
+              onRemoveBar: (barIndex) =>
+                  notifier.removeStopFromRoute(barIndex),
             ),
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  FloatingGpsHeader(
-                    gpsStatus: state.gpsStatus,
-                    gpsAccuracyMeters: state.gpsAccuracyMeters,
-                    isFollowingUser: state.isFollowingUser,
-                    locationAddress: state.locationAddress,
-                    isLoading: state.isLoadingLocation,
-                    cityBarsCount: state.cityBars.length,
-                    isRegisteringBarMode: state.isRegisteringBarMode,
-                    onRefresh: () => notifier.centerOnMyLocation(),
-                    onEditLocation: () => _openLocationSearch(state, notifier),
-                    onToggleRegisterBarMode: () =>
-                        notifier.toggleRegisterBarMode(),
-                    onOpenCityBarsManager: () =>
-                        _openCityBarsManager(state, notifier, origin),
-                  ),
-                  if (activeSession != null && !activeSession.isCompleted)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
-                      child: Material(
-                        color: const Color(0xF0141419),
-                        borderRadius: BorderRadius.circular(16),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () =>
-                              setState(() => _currentTab = DrunkNavTab.radar),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: AppColors.cyberGreen,
-                                width: 1.4,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.directions_run_rounded,
-                                  color: AppColors.cyberGreen,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'CORRIDA ATIVA (${activeSession.completedBarsCount}/${activeSession.totalBarsCount} BARES • '
-                                    '${activeSession.validatedDistanceKm.toStringAsFixed(2)} KM)',
-                                    style: const TextStyle(
-                                      color: AppColors.cyberGreen,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ),
-                                const Text(
-                                  'ABRIR RADAR →',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+              child: FloatingGpsHeader(
+                gpsStatus: state.gpsStatus,
+                gpsAccuracyMeters: state.gpsAccuracyMeters,
+                isFollowingUser: state.isFollowingUser,
+                locationAddress: state.locationAddress,
+                isLoading: state.isLoadingLocation,
+                cityBarsCount: state.cityBars.length,
+                targetDistanceKm: state.targetDistanceKm,
+                targetBarsCount: state.targetBarsCount,
+                isRegisteringBarMode: state.isRegisteringBarMode,
+                isManualRouteMode: state.isManualRouteMode,
+                manualStopsCount: state.route?.bars.length ?? 0,
+                onRefresh: () => notifier.centerOnMyLocation(),
+                onEditLocation: () => _openLocationSearch(state, notifier),
+                onToggleRegisterBarMode: () =>
+                    notifier.toggleRegisterBarMode(),
+                onToggleManualRouteMode: () =>
+                    notifier.toggleManualRouteMode(),
+                onUndoManualStop: () => notifier.undoLastManualStop(),
+                onOpenCityBarsManager: () =>
+                    _openCityBarsManager(state, notifier, origin),
               ),
             ),
             RouteBottomSheet(
+              targetDistanceKm: state.targetDistanceKm,
+              onTargetDistanceChanged: (km) => notifier.setTargetDistanceKm(km),
+              targetBarsCount: state.targetBarsCount,
+              onTargetBarsChanged: (bars) => notifier.setTargetBarsCount(bars),
               searchRadiusKm: state.searchRadiusKm,
               onRadiusChanged: (value) => notifier.setSearchRadius(value),
               isGenerating: state.isGenerating,
+              isManualRouteMode: state.isManualRouteMode,
+              isRouteRegistered: state.isRouteRegistered,
               onGeneratePressed: () => notifier.generateDrunkRoute(),
+              onToggleManualRouteMode: () => notifier.toggleManualRouteMode(),
+              onUndoManualStop: () => notifier.undoLastManualStop(),
               cityBarsCount: state.cityBars.length,
               route: state.route,
               swappingBarIndex: state.swappingBarIndex,
               selectedBarIndex: state.selectedBarIndex,
               onSelectBar: (index) => notifier.selectBar(index),
               onSwapBar: (index) => notifier.swapBar(index),
+              onRemoveBar: (index) => notifier.removeStopFromRoute(index),
               errorMessage: state.errorMessage,
               onResetRoute: () => notifier.resetRoute(),
-              onLockAndStart: _lockAndLaunchHud,
+              onRegisterRoute: _registerRoute,
             ),
           ],
+        );
+
+      case DrunkNavTab.anotar:
+        return RaceLogView(
+          onGoToRoute: () => setState(() => _currentTab = DrunkNavTab.rota),
         );
 
       case DrunkNavTab.radar:

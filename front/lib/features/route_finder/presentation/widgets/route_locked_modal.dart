@@ -232,7 +232,8 @@ class _RouteLockedModalState extends State<RouteLockedModal> {
             const SizedBox(height: 10),
           ],
           NeonButton(
-            label: 'INICIAR CORRIDA SOLO / GRUPO (10KM)',
+            label:
+                'INICIAR CORRIDA (${route.totalDistanceKmFormatted.toUpperCase()} • ${route.totalBars} BARES)',
             subtitle: 'Ativar HUD de telemetria, Geofence 20m e Comanda',
             icon: Icons.directions_run_rounded,
             color: AppColors.cyberGreen,

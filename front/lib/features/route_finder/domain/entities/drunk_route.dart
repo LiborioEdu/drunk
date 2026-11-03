@@ -1,7 +1,7 @@
 import 'package:latlong2/latlong.dart';
 import 'bar.dart';
 
-/// Entidade que encapsula a rota completa gerada de 10km e 10 bares
+/// Entidade que encapsula a rota completa gerada com meta customizável de KM e bares
 class DrunkRoute {
   final LatLng origin;
   final List<Bar> bars;
@@ -10,6 +10,8 @@ class DrunkRoute {
   final List<LatLng> polyline;
   final List<Bar> candidatePool;
   final Set<String> rejectedBarIds;
+  final double targetDistanceMeters;
+  final int targetBarsCount;
 
   const DrunkRoute({
     required this.origin,
@@ -19,7 +21,12 @@ class DrunkRoute {
     required this.polyline,
     this.candidatePool = const [],
     this.rejectedBarIds = const {},
-  });
+    this.targetDistanceMeters = 10000.0,
+    int? targetBarsCount,
+  }) : targetBarsCount = targetBarsCount ?? bars.length;
+
+  /// Meta planejada em quilômetros (ex: 5.0 ou 10.0)
+  double get targetDistanceKm => targetDistanceMeters / 1000.0;
 
   /// Total em quilômetros formatado (ex: "10.2 km")
   String get totalDistanceKmFormatted {
@@ -59,6 +66,8 @@ class DrunkRoute {
     List<LatLng>? polyline,
     List<Bar>? candidatePool,
     Set<String>? rejectedBarIds,
+    double? targetDistanceMeters,
+    int? targetBarsCount,
   }) {
     return DrunkRoute(
       origin: origin ?? this.origin,
@@ -68,6 +77,8 @@ class DrunkRoute {
       polyline: polyline ?? this.polyline,
       candidatePool: candidatePool ?? this.candidatePool,
       rejectedBarIds: rejectedBarIds ?? this.rejectedBarIds,
+      targetDistanceMeters: targetDistanceMeters ?? this.targetDistanceMeters,
+      targetBarsCount: targetBarsCount ?? this.targetBarsCount,
     );
   }
 
@@ -80,6 +91,8 @@ class DrunkRoute {
       },
       'totalDistanceMeters': totalDistanceMeters,
       'totalDurationSeconds': totalDurationSeconds,
+      'targetDistanceMeters': targetDistanceMeters,
+      'targetBarsCount': targetBarsCount,
       'bars': bars.map((b) => b.toJson()).toList(),
       'polyline': polyline
           .map((p) => {'lat': p.latitude, 'lng': p.longitude})
@@ -113,6 +126,9 @@ class DrunkRoute {
           (map['totalDistanceMeters'] as num?)?.toDouble() ?? 0.0,
       totalDurationSeconds:
           (map['totalDurationSeconds'] as num?)?.toDouble() ?? 0.0,
+      targetDistanceMeters:
+          (map['targetDistanceMeters'] as num?)?.toDouble() ?? 10000.0,
+      targetBarsCount: (map['targetBarsCount'] as num?)?.toInt() ?? bars.length,
       polyline: polyline,
     );
   }

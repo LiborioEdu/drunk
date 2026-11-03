@@ -10,6 +10,7 @@ class BarCardItem extends StatelessWidget {
   final bool isSelected;
   final bool isLast;
   final VoidCallback onSwap;
+  final VoidCallback? onRemove;
   final VoidCallback? onTap;
 
   const BarCardItem({
@@ -19,6 +20,7 @@ class BarCardItem extends StatelessWidget {
     this.isSelected = false,
     this.isLast = false,
     required this.onSwap,
+    this.onRemove,
     this.onTap,
   });
 
@@ -157,8 +159,8 @@ class BarCardItem extends StatelessWidget {
                 onTap: isSwapping ? null : onSwap,
                 customBorder: const CircleBorder(),
                 child: Container(
-                  width: 42,
-                  height: 42,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: const Color(0xFF14141A),
                     shape: BoxShape.circle,
@@ -172,8 +174,8 @@ class BarCardItem extends StatelessWidget {
                   child: Center(
                     child: isSwapping
                         ? const SizedBox(
-                            width: 16,
-                            height: 16,
+                            width: 15,
+                            height: 15,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
@@ -184,12 +186,40 @@ class BarCardItem extends StatelessWidget {
                         : const Icon(
                             Icons.swap_horiz_rounded,
                             color: AppColors.neonOrange,
-                            size: 20,
+                            size: 19,
                           ),
                   ),
                 ),
               ),
             ),
+            if (onRemove != null) ...[
+              const SizedBox(width: 6),
+              Tooltip(
+                message: 'Remover esta parada da rota',
+                child: InkWell(
+                  onTap: onRemove,
+                  customBorder: const CircleBorder(),
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF14141A),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.alertRed.withValues(alpha: 0.45),
+                      ),
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: AppColors.alertRed,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// Abas principais da barra inferior conforme o Design System Stitch IA
-enum DrunkNavTab { rota, radar, crew, perfil }
+/// Abas principais da barra inferior (RADAR centralizado entre os 5 ícones)
+enum DrunkNavTab { rota, anotar, radar, crew, perfil }
 
-/// Barra de navegação inferior Cyberpunk Dark Neon (`ROTA • RADAR • CREW • PERFIL`)
+/// Barra de navegação inferior Cyberpunk Dark Neon (`ROTA • ANOTAR • RADAR • CREW • PERFIL`)
 class DrunkBottomNavBar extends StatelessWidget {
   final DrunkNavTab currentTab;
   final ValueChanged<DrunkNavTab> onSelectTab;
@@ -38,6 +38,14 @@ class DrunkBottomNavBar extends StatelessWidget {
                   label: 'ROTA',
                   isSelected: currentTab == DrunkNavTab.rota,
                   onTap: () => onSelectTab(DrunkNavTab.rota),
+                ),
+              ),
+              Expanded(
+                child: _NavItem(
+                  icon: Icons.edit_rounded,
+                  label: 'ANOTAR',
+                  isSelected: currentTab == DrunkNavTab.anotar,
+                  onTap: () => onSelectTab(DrunkNavTab.anotar),
                 ),
               ),
               Expanded(
