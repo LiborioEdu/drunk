@@ -28,6 +28,7 @@ class RouteFinderScreen extends ConsumerStatefulWidget {
 
 class _RouteFinderScreenState extends ConsumerState<RouteFinderScreen> {
   DrunkNavTab _currentTab = DrunkNavTab.rota;
+  bool _isTopMenuOpen = false;
 
   Future<void> _openLocationSearch(
     RouteFinderState state,
@@ -239,6 +240,16 @@ class _RouteFinderScreenState extends ConsumerState<RouteFinderScreen> {
               onRemoveBar: (barIndex) =>
                   notifier.removeStopFromRoute(barIndex),
             ),
+            if (_isTopMenuOpen)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _isTopMenuOpen = false),
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
             Positioned(
               top: 0,
               left: 0,
@@ -255,6 +266,10 @@ class _RouteFinderScreenState extends ConsumerState<RouteFinderScreen> {
                 isRegisteringBarMode: state.isRegisteringBarMode,
                 isManualRouteMode: state.isManualRouteMode,
                 manualStopsCount: state.route?.bars.length ?? 0,
+                isMenuOpen: _isTopMenuOpen,
+                onToggleMenu: () =>
+                    setState(() => _isTopMenuOpen = !_isTopMenuOpen),
+                onCloseMenu: () => setState(() => _isTopMenuOpen = false),
                 onRefresh: () => notifier.centerOnMyLocation(),
                 onEditLocation: () => _openLocationSearch(state, notifier),
                 onToggleRegisterBarMode: () =>
