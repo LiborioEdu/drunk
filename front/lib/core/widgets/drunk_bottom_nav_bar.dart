@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// Abas principais da barra inferior (RADAR centralizado entre os 5 ícones)
+/// Abas principais da barra inferior (DRUNK centralizado entre os 5 ícones)
 enum DrunkNavTab { rota, anotar, radar, crew, perfil }
 
-/// Barra de navegação inferior Cyberpunk Dark Neon (`ROTA • ANOTAR • RADAR • CREW • PERFIL`)
+/// Barra de navegação inferior Cyberpunk Dark Neon (`ROTA • ANOTAR • DRUNK • CREW • PERFIL`)
 class DrunkBottomNavBar extends StatelessWidget {
   final DrunkNavTab currentTab;
   final ValueChanged<DrunkNavTab> onSelectTab;
@@ -50,8 +50,8 @@ class DrunkBottomNavBar extends StatelessWidget {
               ),
               Expanded(
                 child: _NavItem(
-                  icon: Icons.radar_rounded,
-                  label: 'RADAR',
+                  icon: Icons.navigation_rounded,
+                  label: 'DRUNK',
                   isSelected: currentTab == DrunkNavTab.radar,
                   showLiveDot: hasActiveRace,
                   onTap: () => onSelectTab(DrunkNavTab.radar),

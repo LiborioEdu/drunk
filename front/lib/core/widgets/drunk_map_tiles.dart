@@ -7,6 +7,9 @@ enum DrunkMapStyle {
   /// OpenStreetMap Oficial (Zoom 19, todos os nomes de ruas e comércios) com matriz Cyberpunk Dark
   osmCyberDark,
 
+  /// Estilo Pokémon GO (tons esmeralda/menta vibrantes com ruas e contornos em ardósia/ciano)
+  pokemonGo,
+
   /// Esri ArcGIS World Dark Gray Canvas + camada de nomes de ruas (nativo escuro, sem chave)
   arcgisDark,
 
@@ -19,6 +22,8 @@ extension DrunkMapStyleLabel on DrunkMapStyle {
     switch (this) {
       case DrunkMapStyle.osmCyberDark:
         return 'OSM Dark Neon';
+      case DrunkMapStyle.pokemonGo:
+        return 'Pokémon GO Emerald';
       case DrunkMapStyle.arcgisDark:
         return 'ArcGIS Dark';
       case DrunkMapStyle.osmLight:
@@ -30,6 +35,8 @@ extension DrunkMapStyleLabel on DrunkMapStyle {
     switch (this) {
       case DrunkMapStyle.osmCyberDark:
         return DrunkMapStyle.arcgisDark;
+      case DrunkMapStyle.pokemonGo:
+        return DrunkMapStyle.osmCyberDark;
       case DrunkMapStyle.arcgisDark:
         return DrunkMapStyle.osmLight;
       case DrunkMapStyle.osmLight:
@@ -58,6 +65,14 @@ class DrunkMapTileLayer extends StatelessWidget {
     0, 0, 0, 1, 0,
   ]);
 
+  /// Matriz estilo Pokémon GO (gramados verde-esmeralda/menta vibrantes e ruas contrastadas)
+  static const ColorFilter _pokemonGoFilter = ColorFilter.matrix(<double>[
+    0.55, -0.15, 0.10, 0, -5.0,
+    0.15, 0.80, 0.05, 0, 8.0,
+    -0.25, 0.35, 0.75, 0, -2.0,
+    0, 0, 0, 1, 0,
+  ]);
+
   @override
   Widget build(BuildContext context) {
     // Se o usuário forneceu voluntariamente uma CARTO_API_KEY via --dart-define e está no modo Dark padrão
@@ -76,6 +91,17 @@ class DrunkMapTileLayer extends StatelessWidget {
       case DrunkMapStyle.osmCyberDark:
         return ColorFiltered(
           colorFilter: _cyberpunkDarkFilter,
+          child: TileLayer(
+            urlTemplate: ApiEndpoints.osmStandardTile,
+            userAgentPackageName: ApiEndpoints.userAgentPackage,
+            tileProvider: NetworkTileProvider(),
+            maxZoom: 19,
+          ),
+        );
+
+      case DrunkMapStyle.pokemonGo:
+        return ColorFiltered(
+          colorFilter: _pokemonGoFilter,
           child: TileLayer(
             urlTemplate: ApiEndpoints.osmStandardTile,
             userAgentPackageName: ApiEndpoints.userAgentPackage,

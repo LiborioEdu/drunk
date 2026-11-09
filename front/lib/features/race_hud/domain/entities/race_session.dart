@@ -21,7 +21,9 @@ class RaceSession {
   final String originLabel;
   final DrunkRoute route;
   final LatLng currentPosition;
+  final double headingDegrees;
   final double currentSpeedKmh;
+  final bool hasStarted;
   final bool isPaused;
   final double validatedDistanceMeters;
   final int elapsedSeconds;
@@ -40,7 +42,9 @@ class RaceSession {
     required this.originLabel,
     required this.route,
     required this.currentPosition,
+    this.headingDegrees = 0.0,
     this.currentSpeedKmh = 0.0,
+    this.hasStarted = true,
     this.isPaused = false,
     this.validatedDistanceMeters = 0.0,
     this.elapsedSeconds = 0,
@@ -74,6 +78,17 @@ class RaceSession {
     return checkins.any((c) => c.barOrder == barOrder);
   }
 
+  /// Distância Haversine real (em metros) do corredor até o Ponto de Start (Largada)
+  double get distanceToStartMeters {
+    return HaversineCalculator.distanceMeters(
+      currentPosition,
+      route.origin,
+    );
+  }
+
+  /// Verdadeiro quando o usuário está dentro do Ponto de Start (<= 20m)
+  bool get isAtStartPoint => distanceToStartMeters <= geofenceRadiusMeters;
+
   /// Distância Haversine real (em metros) do corredor até o bar alvo atual
   double get distanceToTargetMeters {
     final target = targetBar;
@@ -83,6 +98,22 @@ class RaceSession {
       target.coordinates,
     );
   }
+
+  /// Verdadeiro quando o usuário chegou ao Ponto de Parada atual (<= 20m)
+  bool get isAtStopPoint {
+    if (targetBar == null || isCompleted) return false;
+    return distanceToTargetMeters <= geofenceRadiusMeters;
+  }
+
+  /// Botão START ativa quando o usuário está no Ponto de Start antes de iniciar a corrida
+  bool get canStartAtOrigin => !hasStarted && !isCompleted && isAtStartPoint;
+
+  /// Botão vira PAUSE quando o usuário chega no Ponto de Parada durante o percurso
+  bool get canPauseAtStop =>
+      hasStarted && !isPaused && !isCompleted && isAtStopPoint;
+
+  /// Botão volta a ser START quando a corrida está pausada na parada
+  bool get canResumeFromStop => hasStarted && isPaused && !isCompleted;
 
   /// Regra de Geofencing: Check-in só destrava a <= 20m, sem Anti-Cheat e sem bloqueio de água
   bool get isWithinGeofence {
@@ -168,7 +199,9 @@ class RaceSession {
     String? originLabel,
     DrunkRoute? route,
     LatLng? currentPosition,
+    double? headingDegrees,
     double? currentSpeedKmh,
+    bool? hasStarted,
     bool? isPaused,
     double? validatedDistanceMeters,
     int? elapsedSeconds,
@@ -188,7 +221,9 @@ class RaceSession {
       originLabel: originLabel ?? this.originLabel,
       route: route ?? this.route,
       currentPosition: currentPosition ?? this.currentPosition,
+      headingDegrees: headingDegrees ?? this.headingDegrees,
       currentSpeedKmh: currentSpeedKmh ?? this.currentSpeedKmh,
+      hasStarted: hasStarted ?? this.hasStarted,
       isPaused: isPaused ?? this.isPaused,
       validatedDistanceMeters:
           validatedDistanceMeters ?? this.validatedDistanceMeters,
@@ -218,7 +253,9 @@ class RaceSession {
         'lat': currentPosition.latitude,
         'lng': currentPosition.longitude,
       },
+      'headingDegrees': headingDegrees,
       'currentSpeedKmh': currentSpeedKmh,
+      'hasStarted': hasStarted,
       'isPaused': isPaused,
       'validatedDistanceMeters': validatedDistanceMeters,
       'elapsedSeconds': elapsedSeconds,
@@ -244,11 +281,17 @@ class RaceSession {
         (posMap['lat'] as num).toDouble(),
         (posMap['lng'] as num).toDouble(),
       ),
+      headingDegrees: (map['headingDegrees'] as num?)?.toDouble() ?? 0.0,
       currentSpeedKmh: (map['currentSpeedKmh'] as num?)?.toDouble() ?? 0.0,
-      isPaused: map['isPaused'] as bool? ?? false,
+      hasStarted: map['hasStarted'] as bool? ?? false,
+      isPaused: map['hasStarted'] == null
+          ? true
+          : (map['isPaused'] as bool? ?? false),
       validatedDistanceMeters:
           (map['validatedDistanceMeters'] as num?)?.toDouble() ?? 0.0,
-      elapsedSeconds: (map['elapsedSeconds'] as num?)?.toInt() ?? 0,
+      elapsedSeconds: map['hasStarted'] == null
+          ? 0
+          : ((map['elapsedSeconds'] as num?)?.toInt() ?? 0),
       antiCheatTriggered: map['antiCheatTriggered'] as bool? ?? false,
       antiCheatWarningsCount:
           (map['antiCheatWarningsCount'] as num?)?.toInt() ?? 0,

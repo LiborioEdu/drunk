@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/drunk_bottom_nav_bar.dart';
-import '../../../../core/widgets/neon_button.dart';
 import '../../../crew_lobby/presentation/screens/crew_lobby_view.dart';
 import '../../../race_log/presentation/screens/race_log_view.dart';
 import '../../../race_hud/presentation/controllers/race_session_controller.dart';
@@ -314,12 +313,9 @@ class _RouteFinderScreenState extends ConsumerState<RouteFinderScreen> {
         );
 
       case DrunkNavTab.radar:
-        if (activeSession != null) {
-          return RaceHudScreen(
-            onBack: () => setState(() => _currentTab = DrunkNavTab.rota),
-          );
-        }
-        return _buildEmptyRadarLauncher(context, state, notifier);
+        return RaceHudScreen(
+          onBack: () => setState(() => _currentTab = DrunkNavTab.rota),
+        );
 
       case DrunkNavTab.crew:
         return CrewLobbyView(
@@ -334,94 +330,5 @@ class _RouteFinderScreenState extends ConsumerState<RouteFinderScreen> {
           ),
         );
     }
-  }
-
-  Widget _buildEmptyRadarLauncher(
-    BuildContext context,
-    RouteFinderState state,
-    RouteFinderNotifier notifier,
-  ) {
-    return SafeArea(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(
-                color: AppColors.neonCyan.withValues(alpha: 0.45),
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 68,
-                  height: 68,
-                  decoration: BoxDecoration(
-                    color: AppColors.neonCyan.withValues(alpha: 0.14),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.neonCyan, width: 1.8),
-                  ),
-                  child: const Icon(
-                    Icons.radar_rounded,
-                    color: AppColors.neonCyan,
-                    size: 34,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  'NOCTURNAL RUN HUD',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Telemetria em tempo real com trava Anti-Cheat (>15 km/h), Geofence de 20m, Comanda em R\$ e Gates de Hidratação.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 22),
-                NeonButton(
-                  label: state.hasRoute
-                      ? 'INICIAR HUD COM ROTA ATUAL'
-                      : 'GERAR ROTA 10KM E INICIAR HUD',
-                  icon: Icons.play_arrow_rounded,
-                  borderRadius: 28,
-                  color: AppColors.cyberGreen,
-                  glowColor: AppColors.cyberGreenGlow,
-                  gradient: AppColors.cyberGreenGradient,
-                  textColor: Colors.black,
-                  isLoading: state.isGenerating,
-                  onPressed: () async {
-                    if (!state.hasRoute) {
-                      await notifier.generateDrunkRoute();
-                    }
-                    final updatedRoute = ref.read(routeFinderProvider).route;
-                    if (updatedRoute != null) {
-                      await ref.read(raceSessionProvider.notifier).startSession(
-                            route: updatedRoute,
-                            originLabel:
-                                ref.read(routeFinderProvider).locationAddress,
-                          );
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

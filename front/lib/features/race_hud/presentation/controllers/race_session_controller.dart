@@ -54,9 +54,195 @@ class RaceSessionNotifier extends StateNotifier<RaceSession?> {
     final saved = await _storage.loadActiveSession();
     if (!mounted || saved == null || saved.isCompleted) return;
     state = saved;
-    if (!saved.isPaused) {
+    if (saved.hasStarted && !saved.isPaused) {
       _startTimersAndGps();
+    } else {
+      _startGpsStream();
     }
+  }
+
+  static String _routeSignature(DrunkRoute route) {
+    final barIds = route.bars.map((b) => b.id).join(',');
+    return '${route.origin.latitude.toStringAsFixed(5)}_'
+        '${route.origin.longitude.toStringAsFixed(5)}_$barIds';
+  }
+
+  static double _calculateBearingDegrees(LatLng from, LatLng to) {
+    final dLon = (to.longitude - from.longitude) * (math.pi / 180.0);
+    final lat1 = from.latitude * (math.pi / 180.0);
+    final lat2 = to.latitude * (math.pi / 180.0);
+    final y = math.sin(dLon) * math.cos(lat2);
+    final x = math.cos(lat1) * math.sin(lat2) -
+        math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
+    final brng = math.atan2(y, x) * (180.0 / math.pi);
+    return (brng + 360.0) % 360.0;
+  }
+
+  /// Sincroniza a tela DRUNK com o mapa gerado pelo gerador de rotas (`routeFinderProvider`).
+  /// Mantém a sessão pronta no Ponto de Start (`hasStarted: false`) até o usuário apertar START.
+  Future<void> syncRouteFromFinder(
+    DrunkRoute route, {
+    LatLng? userPosition,
+    double? headingDegrees,
+    String? originLabel,
+  }) async {
+    final current = state;
+    final incomingSig = _routeSignature(route);
+    final currentSig = current != null ? _routeSignature(current.route) : null;
+
+    if (current == null || currentSig != incomingSig) {
+      _stopTimersAndGps();
+      final randomSuffix = (100 + math.Random().nextInt(899)).toString();
+      final initialPos = userPosition ?? route.origin;
+      final nextTarget =
+          route.bars.isNotEmpty ? route.bars.first.coordinates : route.origin;
+      final initialHeading = headingDegrees ??
+          _calculateBearingDegrees(initialPos, nextTarget);
+
+      final prepared = RaceSession(
+        sessionId: 'drk_${DateTime.now().millisecondsSinceEpoch}',
+        roomCode: 'DRK-$randomSuffix',
+        originLabel: originLabel ?? 'Percurso Drunk',
+        route: route,
+        currentPosition: initialPos,
+        headingDegrees: initialHeading,
+        currentSpeedKmh: 0.0,
+        hasStarted: false,
+        isPaused: true,
+        validatedDistanceMeters: 0.0,
+        elapsedSeconds: 0,
+        startedAt: DateTime.now(),
+      );
+
+      state = prepared;
+      await _storage.saveActiveSession(prepared);
+      _startGpsStream();
+      return;
+    }
+
+    if (userPosition != null) {
+      await moveUserPosition(userPosition, headingDegrees: headingDegrees);
+    }
+  }
+
+  /// Ativado quando o usuário está no Ponto de Start e aperta o botão START para começar a corrida
+  Future<bool> startAtOrigin() async {
+    final current = state;
+    if (current == null || !current.canStartAtOrigin) return false;
+
+    final nextTarget = current.targetBar?.coordinates;
+    final nextHeading = nextTarget != null
+        ? _calculateBearingDegrees(current.currentPosition, nextTarget)
+        : current.headingDegrees;
+
+    final started = current.copyWith(
+      hasStarted: true,
+      isPaused: false,
+      headingDegrees: nextHeading,
+      startedAt: DateTime.now(),
+    );
+    state = started;
+    await _storage.saveActiveSession(started);
+    _startTimersAndGps();
+    return true;
+  }
+
+  /// Ativado quando o usuário chega no Ponto de Parada e aperta o botão PAUSE
+  Future<bool> pauseAtStop() async {
+    final current = state;
+    if (current == null || !current.canPauseAtStop) return false;
+
+    final paused = current.copyWith(
+      isPaused: true,
+      currentSpeedKmh: 0.0,
+    );
+    state = paused;
+    await _storage.saveActiveSession(paused);
+    return true;
+  }
+
+  /// Ativado quando a corrida está em PAUSE no Ponto de Parada e o usuário aperta START novamente para voltar a contar o percurso
+  Future<bool> resumeFromStop() async {
+    final current = state;
+    if (current == null || !current.canResumeFromStop) return false;
+
+    final target = current.targetBar;
+    if (target == null) return false;
+
+    final barOrder =
+        target.order > 0 ? target.order : (current.completedBarsCount + 1);
+    final record = BarCheckinRecord(
+      barOrder: barOrder,
+      barId: target.id,
+      barName: target.name,
+      spentBrl: 0.0,
+      category: DrinkCategory.chopp,
+      distanceAtCheckinMeters: current.distanceToTargetMeters,
+      checkedInAt: DateTime.now(),
+    );
+
+    final updatedCheckins = [...current.checkins, record];
+    final finishedAllBars = updatedCheckins.length >= current.totalBarsCount;
+
+    if (finishedAllBars) {
+      _stopTimersAndGps();
+      final completed = current.copyWith(
+        checkins: updatedCheckins,
+        isPaused: true,
+        isCompleted: true,
+        finishedAt: DateTime.now(),
+      );
+      state = completed;
+      await _storage.archiveCompletedSession(completed);
+      return true;
+    }
+
+    final nextBar = current.route.bars[updatedCheckins.length];
+    final nextHeading = _calculateBearingDegrees(
+      current.currentPosition,
+      nextBar.coordinates,
+    );
+
+    final resumed = current.copyWith(
+      checkins: updatedCheckins,
+      isPaused: false,
+      headingDegrees: nextHeading,
+    );
+    state = resumed;
+    await _storage.saveActiveSession(resumed);
+    _startTimersAndGps();
+    return true;
+  }
+
+  /// Atualiza a posição e a orientação da setinha do usuário acompanhando o movimento do celular
+  Future<void> moveUserPosition(
+    LatLng newPosition, {
+    double? headingDegrees,
+  }) async {
+    final current = state;
+    if (current == null) return;
+
+    final deltaMeters = HaversineCalculator.distanceMeters(
+      current.currentPosition,
+      newPosition,
+    );
+    final computedHeading = headingDegrees ??
+        (deltaMeters > 0.8
+            ? _calculateBearingDegrees(current.currentPosition, newPosition)
+            : current.headingDegrees);
+
+    if (current.hasStarted && !current.isPaused && !current.isCompleted) {
+      state = current.copyWith(headingDegrees: computedHeading);
+      await applyTelemetryUpdate(newPosition);
+      return;
+    }
+
+    final updated = current.copyWith(
+      currentPosition: newPosition,
+      headingDegrees: computedHeading,
+    );
+    state = updated;
+    await _storage.saveActiveSession(updated);
   }
 
   /// Inicia uma nova sessão travando a rota dos 10 bares
@@ -74,6 +260,7 @@ class RaceSessionNotifier extends StateNotifier<RaceSession?> {
       originLabel: originLabel ?? 'Circuito Noturno 10K',
       route: route,
       currentPosition: route.origin,
+      hasStarted: true,
       currentSpeedKmh: 0.0,
       validatedDistanceMeters: 0.0,
       elapsedSeconds: 0,
@@ -86,11 +273,26 @@ class RaceSessionNotifier extends StateNotifier<RaceSession?> {
     return session;
   }
 
+  void _startGpsStream() {
+    _gpsSubscription?.cancel();
+    _gpsSubscription = _gpsService.watchPosition().listen((sample) {
+      moveUserPosition(
+        sample.coordinates,
+        headingDegrees: sample.headingDegrees,
+      );
+    });
+  }
+
   void _startTimersAndGps() {
     _stopwatchTimer?.cancel();
     _stopwatchTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       final current = state;
-      if (current == null || current.isPaused || current.isCompleted) return;
+      if (current == null ||
+          !current.hasStarted ||
+          current.isPaused ||
+          current.isCompleted) {
+        return;
+      }
       final nextElapsed = current.elapsedSeconds + 1;
       state = current.copyWith(elapsedSeconds: nextElapsed);
       if (nextElapsed % 10 == 0) {
@@ -98,14 +300,7 @@ class RaceSessionNotifier extends StateNotifier<RaceSession?> {
       }
     });
 
-    _gpsSubscription?.cancel();
-    _gpsSubscription = _gpsService.watchPosition().listen((sample) {
-      applyTelemetryUpdate(
-        sample.coordinates,
-        reportedSpeedKmh: sample.speedKmh,
-        sampleTime: sample.timestamp,
-      );
-    });
+    _startGpsStream();
   }
 
   void _stopTimersAndGps() {
@@ -266,6 +461,51 @@ class RaceSessionNotifier extends StateNotifier<RaceSession?> {
   // ===========================================================================
   // FERRAMENTAS DE SIMULAÇÃO DEV (Para testes imediatos em Web-Server / Desktop)
   // ===========================================================================
+
+  /// Posiciona o usuário diretamente no Ponto de Start (Largada) para liberar o botão START
+  Future<void> simulateMoveToOrigin() async {
+    final current = state;
+    if (current == null) return;
+    await moveUserPosition(current.route.origin);
+  }
+
+  /// Move a setinha do usuário até o próximo ponto relevante (Ponto de Start ou Parada atual)
+  Future<void> simulateStepToTarget() async {
+    final current = state;
+    if (current == null || current.isCompleted) return;
+
+    if (!current.hasStarted) {
+      await moveUserPosition(current.route.origin);
+      return;
+    }
+
+    if (current.isPaused) return;
+
+    final targetBar = current.targetBar;
+    if (targetBar == null) return;
+
+    final arrivalPos = LatLng(
+      targetBar.coordinates.latitude - 0.00008,
+      targetBar.coordinates.longitude,
+    );
+    final heading = _calculateBearingDegrees(
+      current.currentPosition,
+      targetBar.coordinates,
+    );
+
+    final remainingDist = HaversineCalculator.distanceMeters(
+      current.currentPosition,
+      targetBar.coordinates,
+    );
+    final simulatedSecs =
+        remainingDist > 25.0 ? (remainingDist / 2.6).round().clamp(10, 600) : 5;
+
+    state = current.copyWith(
+      elapsedSeconds: current.elapsedSeconds + simulatedSecs,
+      headingDegrees: heading,
+    );
+    await moveUserPosition(arrivalPos, headingDegrees: heading);
+  }
 
   /// Simula avanço de ~300m correndo a 9.4 km/h na direção do próximo bar
   Future<void> simulateRunStepTowardsBar() async {

@@ -2,15 +2,17 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
-/// Amostra de telemetria GPS contendo coordenada atual e velocidade em km/h
+/// Amostra de telemetria GPS contendo coordenada atual, velocidade em km/h e direção (heading)
 class GpsTelemetrySample {
   final LatLng coordinates;
   final double speedKmh;
+  final double? headingDegrees;
   final DateTime timestamp;
 
   const GpsTelemetrySample({
     required this.coordinates,
     required this.speedKmh,
+    this.headingDegrees,
     required this.timestamp,
   });
 }
@@ -34,15 +36,18 @@ class GpsTelemetryService {
 
       const settings = LocationSettings(
         accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 3,
+        distanceFilter: 2,
       );
 
       await for (final pos
           in Geolocator.getPositionStream(locationSettings: settings)) {
         final rawSpeedMs = pos.speed.isFinite && pos.speed > 0 ? pos.speed : 0.0;
+        final validHeading =
+            pos.heading.isFinite && pos.heading >= 0 ? pos.heading : null;
         yield GpsTelemetrySample(
           coordinates: LatLng(pos.latitude, pos.longitude),
           speedKmh: rawSpeedMs * 3.6,
+          headingDegrees: validHeading,
           timestamp: pos.timestamp,
         );
       }

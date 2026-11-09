@@ -1,10 +1,9 @@
 import 'package:drunk_front/core/location/gps_telemetry_service.dart';
 import 'package:drunk_front/core/storage/local_storage_service.dart';
 import 'package:drunk_front/core/theme/app_theme.dart';
-import 'package:drunk_front/features/comanda_checkin/presentation/modals/hydration_lock_modal.dart';
+import 'package:drunk_front/core/widgets/drunk_bottom_nav_bar.dart';
 import 'package:drunk_front/features/race_hud/presentation/controllers/race_session_controller.dart';
 import 'package:drunk_front/features/race_hud/presentation/screens/race_hud_screen.dart';
-import 'package:drunk_front/features/race_summary/presentation/screens/drunk_wrapped_screen.dart';
 import 'package:drunk_front/features/route_finder/domain/entities/bar.dart';
 import 'package:drunk_front/features/route_finder/domain/entities/drunk_route.dart';
 import 'package:flutter/material.dart';
@@ -19,46 +18,65 @@ class _NoopGpsService extends GpsTelemetryService {
 }
 
 DrunkRoute _sampleThreeBarRoute() {
-  const origin = LatLng(-23.5535, -46.6575);
+  const origin = LatLng(-5.0645, -42.7788);
   final bars = [
     const Bar(
       id: 'b1',
-      name: 'Boteco Neon Augusta',
-      latitude: -23.5505,
-      longitude: -46.6555,
+      name: 'The Champions Restobar',
+      latitude: -5.0691,
+      longitude: -42.7812,
       order: 1,
-      distanceFromPrevious: 980,
+      distanceFromPrevious: 650,
     ),
     const Bar(
       id: 'b2',
-      name: 'Cervejaria Subsolo',
-      latitude: -23.5475,
-      longitude: -46.6535,
+      name: 'Up Resto Pub',
+      latitude: -5.0621,
+      longitude: -42.7765,
       order: 2,
-      distanceFromPrevious: 1020,
+      distanceFromPrevious: 890,
     ),
     const Bar(
       id: 'b3',
-      name: 'Pub Velha Guarda',
-      latitude: -23.5445,
-      longitude: -46.6515,
+      name: 'Varanda Boteco',
+      latitude: -5.0723,
+      longitude: -42.7934,
       order: 3,
-      distanceFromPrevious: 990,
+      distanceFromPrevious: 1120,
     ),
   ];
 
   return DrunkRoute(
     origin: origin,
     bars: bars,
-    totalDistanceMeters: 2990,
-    totalDurationSeconds: 2100,
+    totalDistanceMeters: 2660,
+    totalDurationSeconds: 1900,
     polyline: [origin, ...bars.map((b) => b.coordinates)],
   );
 }
 
 void main() {
   testWidgets(
-      'Fluxo completo UI: RaceHudScreen -> Geofence 20m -> Comanda -> Hydration Lock -> Drunk Wrapped',
+      'Barra de navegação inferior exibe o nome DRUNK no lugar de RADAR',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          bottomNavigationBar: DrunkBottomNavBar(
+            currentTab: DrunkNavTab.radar,
+            onSelectTab: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('DRUNK'), findsOneWidget);
+    expect(find.text('RADAR'), findsNothing);
+  });
+
+  testWidgets(
+      'Tela DRUNK estilo Pokémon GO: reconhece rota, ativa START no ponto de start, vira PAUSE na parada e exige START para voltar a contar',
       (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
@@ -73,10 +91,13 @@ void main() {
       autoRestore: false,
     );
 
-    await sessionNotifier.startSession(
-      route: _sampleThreeBarRoute(),
-      roomCode: 'DRK-492',
-      originLabel: 'Rua Augusta, 1420',
+    final route = _sampleThreeBarRoute();
+
+    // 1. Inicia longe do Ponto de Start (> 20m): botão START fica desativado
+    await sessionNotifier.syncRouteFromFinder(
+      route,
+      userPosition: const LatLng(-5.0600, -42.7700),
+      originLabel: 'Teresina',
     );
 
     await tester.pumpWidget(
@@ -93,71 +114,66 @@ void main() {
     );
     await tester.pump();
 
-    // 1. Verifica que o HUD montou e a trava Anti-Cheat está ativa
-    expect(find.text('TRAVA ANTI-CHEAT ATIVA'), findsOneWidget);
-    expect(find.textContaining('BOTECO NEON AUGUSTA'), findsOneWidget);
+    expect(find.text('DRUNK'), findsOneWidget);
+    expect(find.textContaining('VÁ ATÉ O PONTO DE START'), findsOneWidget);
+    expect(sessionNotifier.state!.hasStarted, isFalse);
 
-    // 2. Simula veículo > 15 km/h e verifica alerta vermelho
-    await tester.tap(find.text('Testar Carro (25km/h)'));
+    // Garante que o topo ("DRUNK") e o HUD inferior estão separados na tela cheia (sem sobreposição)
+    final topBadgeRect = tester.getRect(find.text('DRUNK'));
+    final bottomOrbRect =
+        tester.getRect(find.byKey(const Key('drunk_central_action_button')));
+    expect(bottomOrbRect.top, greaterThan(topBadgeRect.bottom + 400));
+
+    // Tentar clicar em START longe da largada não inicia a corrida
+    await tester.tap(find.byKey(const Key('drunk_central_action_button')));
     await tester.pump();
-    expect(find.text('ALERTA DE VEÍCULO DETECTADO!'), findsOneWidget);
+    expect(sessionNotifier.state!.hasStarted, isFalse);
 
-    // Sai do veículo de volta para ritmo seguro
-    await tester.tap(find.text('Sair do Veículo (9km/h)'));
-    await tester.pump();
-
-    // 3. Chega a <= 20m do Bar #01 e abre modal de Check-in e Comanda
-    await tester.tap(find.text('Chegar <=20m do Bar'));
-    await tester.pump();
-    expect(find.text('DENTRO DO RAIO DE 20 METROS!'), findsOneWidget);
-
-    final checkinBtn1 = find.textContaining('FAZER CHECK-IN NO BAR #01');
-    await tester.ensureVisible(checkinBtn1);
-    await tester.tap(checkinBtn1);
-    await tester.pumpAndSettle();
-
-    // Tela 3: Modal de Comanda Financeira aberto
-    expect(find.text('QUANTO VOCÊ GASTOU NESTE BAR?'), findsOneWidget);
-    await tester.tap(find.text('+ R\$ 50'));
-    await tester.pump();
-    await tester.tap(find.text('SALVAR COMANDA E LIBERAR BAR #02'));
-    await tester.pumpAndSettle();
-
-    // 4. Chega no Bar #02 (par -> dispara Trava Obrigatória de Hidratação!)
-    await tester.tap(find.text('Chegar <=20m do Bar'));
-    await tester.pump();
-    final checkinBtn2 = find.textContaining('FAZER CHECK-IN NO BAR #02');
-    await tester.ensureVisible(checkinBtn2);
-    await tester.tap(checkinBtn2);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('SALVAR COMANDA E LIBERAR BAR #03'));
+    // 2. Usuário chega no Ponto de Start -> botão START ativa!
+    await sessionNotifier.moveUserPosition(route.origin);
     await tester.pump();
 
-    // Tela 4: HydrationLockOverlay visível!
-    expect(find.byType(HydrationLockOverlay), findsOneWidget);
-    expect(find.textContaining('HORA DA ÁGUA!'), findsOneWidget);
+    expect(
+      find.text('NO PONTO DE START • APERTE START PARA COMEÇAR'),
+      findsOneWidget,
+    );
+    expect(sessionNotifier.state!.canStartAtOrigin, isTrue);
 
-    final waterBtn = find.text("JÁ BEBI MEU COPO D'ÁGUA");
-    await tester.ensureVisible(waterBtn);
-    await tester.tap(waterBtn);
+    // Clica em START -> grupo começa a corrida
+    await tester.tap(find.byKey(const Key('drunk_central_action_button')));
     await tester.pump();
-    expect(find.byType(HydrationLockOverlay), findsNothing);
+    expect(sessionNotifier.state!.hasStarted, isTrue);
+    expect(sessionNotifier.state!.isPaused, isFalse);
+    expect(find.textContaining('PERCURSO ATIVO • PARADA #1'), findsOneWidget);
 
-    // 5. Chega no Bar #03 (último bar -> transiciona direto para DrunkWrappedScreen!)
-    await tester.tap(find.text('Chegar <=20m do Bar'));
-    await tester.pump();
-    final checkinBtn3 = find.textContaining('FAZER CHECK-IN NO BAR #03');
-    await tester.ensureVisible(checkinBtn3);
-    await tester.tap(checkinBtn3);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('SALVAR E FINALIZAR 10KM (WRAPPED)'));
+    // 3. Usuário chega no Ponto de Parada #1 -> botão vira PAUSE!
+    await tester.tap(find.byKey(const Key('drunk_simulate_step_button')));
     await tester.pump();
 
-    // Tela 5: DrunkWrappedScreen exibida com soma R$ 100,00 (50 + 25 + 25)!
-    expect(find.byType(DrunkWrappedScreen), findsOneWidget);
-    expect(find.text('R\$ 100,00'), findsOneWidget);
-    expect(find.textContaining('DRUNKCOINS CREDITADOS'), findsOneWidget);
+    expect(sessionNotifier.state!.isAtStopPoint, isTrue);
+    expect(sessionNotifier.state!.canPauseAtStop, isTrue);
+    expect(find.text('PAUSE'), findsOneWidget);
+    expect(find.text('CHEGOU NA PARADA #1 • APERTE PAUSE'), findsOneWidget);
+
+    // 4. Usuário aperta PAUSE na Parada #1 -> corrida pausa e botão vira START
+    await tester.tap(find.byKey(const Key('drunk_central_action_button')));
+    await tester.pump();
+
+    expect(sessionNotifier.state!.isPaused, isTrue);
+    expect(sessionNotifier.state!.canResumeFromStop, isTrue);
+    expect(
+      find.text('PAUSADO NA PARADA #1 • APERTE START PARA CONTINUAR'),
+      findsOneWidget,
+    );
+    expect(find.text('START'), findsOneWidget);
+
+    // 5. Usuário aperta START novamente -> volta a contar o percurso rumo à Parada #2!
+    await tester.tap(find.byKey(const Key('drunk_central_action_button')));
+    await tester.pump();
+
+    expect(sessionNotifier.state!.isPaused, isFalse);
+    expect(sessionNotifier.state!.completedBarsCount, 1);
+    expect(find.text('PARADAS 1/3'), findsOneWidget);
+    expect(find.textContaining('PERCURSO ATIVO • PARADA #2'), findsOneWidget);
   });
 }
